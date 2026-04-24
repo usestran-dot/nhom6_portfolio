@@ -1,0 +1,9 @@
+body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden; /* Ngăn thanh cuộn xuất hiện */
+    background-color: #1a1a1a; /* Nền tối ngầu cho dev */
+}
+canvas {
+    display: block;
+}
