@@ -58,7 +58,7 @@ const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 const loader = new GLTFLoader();
 const interactableObjects = [];
-
+let deskLightRef = null; // Biến dùng để ghi nhớ và điều khiển bật/tắt đèn bàn
 // 7. TẢI MODEL VÀ XỬ LÝ (ÁNH SÁNG & TƯƠNG TÁC)
 loader.load(
     '/modeldone1.glb',
@@ -97,6 +97,8 @@ loader.load(
                 deskLight.shadow.mapSize.width = 512;
                 deskLight.shadow.mapSize.height = 512;
                 deskLight.shadow.bias = -0.0001;
+                deskLight.visible = false; // Mặc định ban đầu là đèn TẮT
+                deskLightRef = deskLight;  // Lưu vào biến toàn cục để điều khiển ở sự kiện click
 
                 deskLight.position.set(0, 0, 0);
                 child.add(deskLight);
@@ -193,6 +195,13 @@ window.addEventListener('click', (event) => {
     const displayName = targetGroup.name.replace('Interact_', '');
     infoDiv.innerHTML = `<strong>${displayName}</strong><br><span style="font-size: 12px; color: white;">Click de xem chi tiet</span>`;
     infoDiv.style.display = 'block';
+    if (targetGroup.name === 'Interact_den') {
+        if (deskLightRef) {
+            // Đảo ngược trạng thái hiện tại (Tắt thành Bật, Bật thành Tắt)
+            deskLightRef.visible = !deskLightRef.visible; 
+            console.log("Trạng thái đèn bàn:", deskLightRef.visible ? "BẬT" : "TẮT");
+        }
+    }
 });
 
 // 9. VÒNG LẶP RENDER
