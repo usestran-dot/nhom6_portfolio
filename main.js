@@ -66,38 +66,70 @@ loader.load(
         const room = gltf.scene;
 
         room.traverse((child) => {
-            // --- BƯỚC A: XỬ LÝ ĐÈN TRẦN TRƯỚC ---
-            // (Vì Light_tran là Empty nên phải xử lý trước khi chặn isMesh)
+            // ==========================================
+            // BƯỚC A: XỬ LÝ CÁC MỎ NEO ÁNH SÁNG
+            // ==========================================
+            
+            // --- 1. ĐÈN TRẦN ---
             if (child.name === 'Light_tran') {
-                console.log('Đã tìm thấy Light_tran (Empty), đang gắn hệ thống sáng...');
-                
-                // Tạo PointLight màu trắng ấm, cường độ 5, tỏa ra 20m
                 const ceilingLight = new THREE.PointLight(0xfffaf0, 5, 20);
-                
-                // Cấu hình vật lý và đổ bóng
                 ceilingLight.decay = 2; 
                 ceilingLight.castShadow = true; 
                 ceilingLight.shadow.mapSize.width = 1024;
                 ceilingLight.shadow.mapSize.height = 1024;
-                ceilingLight.shadow.bias = -0.005; // Khử sọc bóng
-
-                // Gắn làm "con" của Empty (nằm ngay tâm của cái Empty)
+                ceilingLight.shadow.bias = -0.005;
                 ceilingLight.position.set(0, 0, 0); 
                 child.add(ceilingLight);
+            }
+            
+            // --- 2. ĐÈN BÀN HỌC (MỚI THÊM) ---
+            else if (child.name === 'Light_denban') {
+                console.log('Đã tìm thấy Light_denban, đang gắn SpotLight...');
                 
-                // Nếu muốn bật khung lưới đỏ để nhìn cho rõ thì bỏ comment 2 dòng dưới:
-                // const ceilingHelper = new THREE.PointLightHelper(ceilingLight, 0.5, 0xff0000);
-                // scene.add(ceilingHelper);
+                // Màu vàng nắng (0xffd27d)
+                const deskLight = new THREE.SpotLight(0xffd27d, 1, 10);
+                deskLight.angle = Math.PI / 4; // Góc mở của chụp đèn
+                deskLight.penumbra = 0.3;      // Mờ viền sáng
+                deskLight.decay = 2;
+                
+                // Bật đổ bóng
+                deskLight.castShadow = true;
+                deskLight.shadow.mapSize.width = 512;
+                deskLight.shadow.mapSize.height = 512;
+                deskLight.shadow.bias = -0.0001;
+
+                deskLight.position.set(0, 0, 0);
+                child.add(deskLight);
+
+                // Hướng tia sáng cắm xuống mặt bàn
+                deskLight.target.position.set(0, -1, 0);
+                child.add(deskLight.target);
             }
 
-            // --- BƯỚC B: CHẶN CÁC OBJECT KHÔNG PHẢI MESH ---
+            // ==========================================
+            // BƯỚC B: CHẶN CÁC OBJECT KHÔNG PHẢI MESH
+            // ==========================================
             if (!child.isMesh) return;
 
-            // --- BƯỚC C: BẬT ĐỔ BÓNG CHO MESH ---
+            // ==========================================
+            // BƯỚC C: XỬ LÝ ĐỔ BÓNG CHO MESH
+            // ==========================================
             child.castShadow = true;
             child.receiveShadow = true;
 
-            // --- BƯỚC D: LỌC VẬT THỂ TƯƠNG TÁC (Raycaster) ---
+            // --- XỬ LÝ CHỤP ĐÈN KHÔNG CHO SÁNG XUYÊN QUA ---
+            // Tạm thời tôi đặt từ khóa là 'Chup' hoặc 'Lampshade'.
+            // (Nếu team 3D đặt tên khác, bạn thay chữ 'Chup' bằng tên đó nhé)
+            if (child.name.includes('Chup') || child.name.includes('Lampshade') || child.name.includes('DenBan')) {
+                child.receiveShadow = false; // Chụp đèn không nhận bóng của chính nó
+                if (child.material) {
+                    child.material.side = THREE.DoubleSide; // Render cả mặt trong lẫn ngoài để chắn sáng tuyệt đối
+                }
+            }
+
+            // ==========================================
+            // BƯỚC D: LỌC VẬT THỂ TƯƠNG TÁC (Raycaster)
+            // ==========================================
             let current = child;
             let isInteractable = false;
             while (current) {
