@@ -2,7 +2,11 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
-
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { OutlinePass } from 'three/addons/postprocessing/OutlinePass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
 // 1. KHỞI TẠO SCENE, CAMERA, RENDERER
 const scene = new THREE.Scene();
 
@@ -16,9 +20,39 @@ camera.position.set(5, 5, 5);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(window.devicePixelRatio); // BỔ SUNG: Lấy đúng mật độ điểm ảnh để nét hơn
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Giúp bóng đổ mịn hơn
 document.body.appendChild(renderer.domElement);
+// --- BỔ SUNG: KHỞI TẠO COMPOSER & OUTLINE PASS ---
+const renderTarget = new THREE.WebGLRenderTarget(
+    window.innerWidth, 
+    window.innerHeight, 
+    {
+        samples: 4, 
+        type: THREE.HalfFloatType 
+    }
+);
+const composer = new EffectComposer(renderer, renderTarget);
+const renderPass = new RenderPass(scene, camera);
+composer.addPass(renderPass);
+
+const outlinePass = new OutlinePass(new THREE.Vector2(window.innerWidth, window.innerHeight), scene, camera);
+outlinePass.edgeStrength = 3.0;
+outlinePass.edgeGlow = 0.2;
+outlinePass.edgeThickness = 1.0;
+outlinePass.visibleEdgeColor.set('#ffffff'); 
+outlinePass.hiddenEdgeColor.set('#cccccc');  
+composer.addPass(outlinePass);
+
+const outputPass = new OutputPass();
+composer.addPass(outputPass);
+
+// --- NÂNG CẤP: DÙNG SMAA THAY VÌ FXAA ĐỂ NÉT NHƯ BLENDER ---
+const pixelRatio = renderer.getPixelRatio();
+const smaaPass = new SMAAPass( window.innerWidth * pixelRatio, window.innerHeight * pixelRatio );
+composer.addPass( smaaPass );
+// ----------------------------------------------------
 
 // 2. KHỞI TẠO CSS2DRENDERER (CHO UI LABELS)
 const labelRenderer = new CSS2DRenderer();
@@ -77,7 +111,7 @@ loader.load(
                 ceilingLight.castShadow = true; 
                 ceilingLight.shadow.mapSize.width = 1024;
                 ceilingLight.shadow.mapSize.height = 1024;
-                ceilingLight.shadow.bias = -0.005;
+                ceilingLight.shadow.bias = -0.001;
                 ceilingLight.position.set(0, 0, 0); 
                 child.add(ceilingLight);
             }
@@ -203,12 +237,46 @@ window.addEventListener('click', (event) => {
         }
     }
 });
+// --- BỔ SUNG: BẮT SỰ KIỆN MOUSEMOVE (HOVER ĐỂ PHÁT SÁNG) ---
+window.addEventListener('mousemove', (event) => {
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObjects(interactableObjects, false);
+
+    if (intersects.length > 0) {
+        const hoveredMesh = intersects[0].object;
+        let targetGroup = null;
+
+        // Tìm Group/Mesh cha có chữ Interact_ giống logic lúc Click
+        if (hoveredMesh.name.startsWith('Interact_')) {
+            targetGroup = hoveredMesh;
+        } else {
+            hoveredMesh.traverseAncestors((ancestor) => {
+                if (ancestor.name && ancestor.name.startsWith('Interact_')) {
+                    targetGroup = ancestor;
+                }
+            });
+        }
+
+        if (targetGroup) {
+            outlinePass.selectedObjects = [targetGroup]; // Phát sáng group đó
+            document.body.style.cursor = 'pointer';      // Đổi icon chuột thành bàn tay
+        } else {
+            outlinePass.selectedObjects = [];
+            document.body.style.cursor = 'default';
+        }
+    } else {
+        outlinePass.selectedObjects = [];
+        document.body.style.cursor = 'default';
+    }
+});
 // 9. VÒNG LẶP RENDER
 function animate() {
     requestAnimationFrame(animate);
     controls.update();
-    renderer.render(scene, camera);
+    composer.render();
     labelRenderer.render(scene, camera); // Render UI 2D
 }
 
@@ -220,4 +288,10 @@ window.addEventListener('resize', () => {
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
     labelRenderer.setSize(window.innerWidth, window.innerHeight);
+    
+    composer.setSize(window.innerWidth, window.innerHeight);
+
+    // Cập nhật lại độ phân giải cho SMAA
+    const pixelRatio = renderer.getPixelRatio();
+    smaaPass.setSize(window.innerWidth * pixelRatio, window.innerHeight * pixelRatio);
 });
