@@ -5,22 +5,21 @@ import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer
 
 // 1. KHỞI TẠO SCENE, CAMERA, RENDERER
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xf0f0f0); // Thiết lập nền sáng chuẩn AAA
+scene.background = new THREE.Color(0xf0f0f0); 
 
 const camera = new THREE.PerspectiveCamera(
     75,
     window.innerWidth / window.innerHeight,
-    0.1,
+    0.01, // FIX 1: Đổi từ 0.1 thành 0.01 (Mắt camera nhìn sát vật thể đến 1cm vẫn không bị xuyên)
     1000
 );
-// Đặt camera ở độ cao mắt người (1.6m) và đứng ở vị trí thuận tiện nhìn căn phòng
 camera.position.set(0, 1.6, 2); 
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(window.devicePixelRatio); // Tối ưu độ nét cho các màn hình cao cấp
+renderer.setPixelRatio(window.devicePixelRatio); 
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Giúp bóng đổ mịn hơn
+renderer.shadowMap.type = THREE.PCFSoftShadowMap; 
 document.body.appendChild(renderer.domElement);
 
 // 2. KHỞI TẠO CSS2DRENDERER (CHO UI LABELS)
@@ -240,10 +239,9 @@ window.addEventListener('click', (event) => {
 function animate() {
     requestAnimationFrame(animate);
 
-    if (controls.isLocked) {
-        // FIX 1: Chống lỗi "Vụ nổ thời gian" (Delta Time Explosion)
-        const delta = Math.min(clock.getDelta(), 0.1);
+    const delta = Math.min(clock.getDelta(), 0.1);
 
+    if (controls.isLocked) {
         velocity.x -= velocity.x * 10.0 * delta;
         velocity.z -= velocity.z * 10.0 * delta;
 
@@ -251,29 +249,61 @@ function animate() {
         direction.x = Number(moveRight) - Number(moveLeft);
         direction.normalize();
 
-        if (moveForward || moveBackward) velocity.z -= direction.z * 50.0 * delta;
-        if (moveLeft || moveRight) velocity.x -= direction.x * 50.0 * delta;
+        // Tốc độ đi bộ vừa phải
+        if (moveForward || moveBackward) velocity.z -= direction.z * 25.0 * delta;
+        if (moveLeft || moveRight) velocity.x -= direction.x * 25.0 * delta;
+
+        // Lực di chuyển dự kiến
+        const fwVelocity = -velocity.z * delta;
+        const sideVelocity = -velocity.x * delta;
+
+        // Lấy vector Hướng nhìn (Forward) và Hướng ngang (Right)
+        const camDir = new THREE.Vector3();
+        camera.getWorldDirection(camDir);
+        camDir.y = 0; 
+        camDir.normalize();
+
+        const camRight = new THREE.Vector3();
+        
+        // ==========================================
+        // FIX BUG ĐI XUYÊN TƯỜNG NGANG CHÍNH LÀ Ở ĐÂY:
+        // Đảo ngược vị trí thành (camDir, camera.up) để tia Ray chỉ đúng sang PHẢI
+        // ==========================================
+        camRight.crossVectors(camDir, camera.up).normalize();
 
         // ==========================================
-        // VẬT LÝ 1: VA CHẠM TƯỜNG VÀ ĐỒ VẬT (COLLISION)
+        // VẬT LÝ 1: KIỂM TRA VA CHẠM ĐỘC LẬP & TRƯỢT TƯỜNG
         // ==========================================
-        const moveVector = new THREE.Vector3(-velocity.x * delta, 0, -velocity.z * delta);
-        const moveDistance = moveVector.length();
+        let allowZ = true;
+        let allowX = true;
+        const collisionDistance = 0.5; // Bán kính bụng nhân vật
 
-        if (moveDistance > 0) {
-            const moveDir = moveVector.clone().normalize();
-            raycaster.set(camera.position, moveDir);
-            
-            const intersects = raycaster.intersectObjects(collidableObjects, false);
-
-            if (intersects.length > 0 && intersects[0].distance < 0.5) {
-                velocity.x = 0;
-                velocity.z = 0;
-            } else {
-                controls.moveRight(-velocity.x * delta);
-                controls.moveForward(-velocity.z * delta);
+        // Bắn tia hướng Tiến/Lùi
+        if (Math.abs(fwVelocity) > 0) {
+            const rayDirZ = camDir.clone().multiplyScalar(Math.sign(fwVelocity));
+            raycaster.set(camera.position, rayDirZ);
+            const hitsZ = raycaster.intersectObjects(collidableObjects, false);
+            if (hitsZ.length > 0 && hitsZ[0].distance < collisionDistance) {
+                allowZ = false;
             }
         }
+
+        // Bắn tia hướng Trái/Phải
+        if (Math.abs(sideVelocity) > 0) {
+            const rayDirX = camRight.clone().multiplyScalar(Math.sign(sideVelocity));
+            raycaster.set(camera.position, rayDirX);
+            const hitsX = raycaster.intersectObjects(collidableObjects, false);
+            if (hitsX.length > 0 && hitsX[0].distance < collisionDistance) {
+                allowX = false;
+            }
+        }
+
+        // Áp dụng di chuyển độc lập
+        if (allowX) controls.moveRight(sideVelocity);
+        else velocity.x = 0; 
+
+        if (allowZ) controls.moveForward(fwVelocity);
+        else velocity.z = 0;
 
         // ==========================================
         // VẬT LÝ 2: TRỌNG LỰC & CHẠM ĐẤT
@@ -283,7 +313,6 @@ function animate() {
 
         if (floorIntersects.length > 0) {
             const floorHeight = floorIntersects[0].point.y;
-            // FIX 2: Chống lỗi bị đẩy tít lên trần nhà nếu đứng dưới cái tủ cao
             if (floorHeight < camera.position.y + 1.0) {
                 camera.position.y = floorHeight + 1.6;
             }
@@ -296,7 +325,6 @@ function animate() {
     labelRenderer.render(scene, camera); 
 }
 
-// BẮT BUỘC PHẢI CÓ DÒNG NÀY ĐỂ KHỞI ĐỘNG GAME!
 animate();
 
 // 10. XỬ LÝ KHI RESIZE TRÌNH DUYỆT
