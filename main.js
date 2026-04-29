@@ -1,10 +1,11 @@
 import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 
 // 1. KHỞI TẠO SCENE, CAMERA, RENDERER
 const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xf0f0f0); // Thiết lập nền sáng chuẩn AAA
 
 const camera = new THREE.PerspectiveCamera(
     75,
@@ -12,10 +13,12 @@ const camera = new THREE.PerspectiveCamera(
     0.1,
     1000
 );
-camera.position.set(5, 5, 5);
+// Đặt camera ở độ cao mắt người (1.6m) và đứng ở vị trí thuận tiện nhìn căn phòng
+camera.position.set(0, 1.6, 2); 
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(window.devicePixelRatio); // Tối ưu độ nét cho các màn hình cao cấp
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Giúp bóng đổ mịn hơn
 document.body.appendChild(renderer.domElement);
@@ -29,10 +32,39 @@ labelRenderer.domElement.style.left = '0px';
 labelRenderer.domElement.style.pointerEvents = 'none';
 document.body.appendChild(labelRenderer.domElement);
 
-// 3. KHỞI TẠO CONTROLS
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true;
-controls.dampingFactor = 0.05;
+// 3. KHỞI TẠO CONTROLS (GÓC NHÌN THỨ NHẤT AAA)
+const controls = new PointerLockControls(camera, document.body);
+scene.add(camera);
+
+const blocker = document.getElementById('blocker');
+blocker.addEventListener('click', () => { controls.lock(); });
+controls.addEventListener('lock', () => { blocker.style.display = 'none'; });
+controls.addEventListener('unlock', () => { blocker.style.display = 'flex'; });
+
+// Biến vật lý di chuyển
+let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
+const velocity = new THREE.Vector3();
+const direction = new THREE.Vector3();
+const clock = new THREE.Clock();
+
+const onKeyDown = (event) => {
+    switch (event.code) {
+        case 'KeyW': moveForward = true; break;
+        case 'KeyA': moveLeft = true; break;
+        case 'KeyS': moveBackward = true; break;
+        case 'KeyD': moveRight = true; break;
+    }
+};
+const onKeyUp = (event) => {
+    switch (event.code) {
+        case 'KeyW': moveForward = false; break;
+        case 'KeyA': moveLeft = false; break;
+        case 'KeyS': moveBackward = false; break;
+        case 'KeyD': moveRight = false; break;
+    }
+};
+document.addEventListener('keydown', onKeyDown);
+document.addEventListener('keyup', onKeyUp);
 
 // 4. ÁNH SÁNG MÔI TRƯỜNG CƠ BẢN
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
@@ -58,7 +90,8 @@ const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 const loader = new GLTFLoader();
 const interactableObjects = [];
-let deskLightRef = null; // Biến dùng để ghi nhớ và điều khiển bật/tắt đèn bàn
+const collidableObjects = []; // MỚI: Mảng chứa TẤT CẢ tường, sàn, đồ vật để làm vật cản
+let deskLightRef = null;
 // 7. TẢI MODEL VÀ XỬ LÝ (ÁNH SÁNG & TƯƠNG TÁC)
 loader.load(
     '/modeldone1.glb',
@@ -112,6 +145,7 @@ loader.load(
             // BƯỚC B: CHẶN CÁC OBJECT KHÔNG PHẢI MESH
             // ==========================================
             if (!child.isMesh) return;
+            collidableObjects.push(child);
 
             // ==========================================
             // BƯỚC C: XỬ LÝ ĐỔ BÓNG CHO MESH
@@ -155,13 +189,15 @@ loader.load(
     }
 );
 
-// 8. BẮT SỰ KIỆN CLICK (RAYCASTER)
+// 8. BẮT SỰ KIỆN CLICK (RAYCASTER CHO GAME FPS)
 window.addEventListener('click', (event) => {
-    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    if (!controls.isLocked) return; // Bắt buộc phải khóa chuột mới được tương tác
+
+    // Bắn tia từ tâm ngắm (giữa màn hình)
+    mouse.x = 0;
+    mouse.y = 0;
 
     raycaster.setFromCamera(mouse, camera);
-
     const intersects = raycaster.intersectObjects(interactableObjects, false);
 
     if (intersects.length === 0) {
@@ -176,9 +212,7 @@ window.addEventListener('click', (event) => {
         targetGroup = clickedMesh;
     } else {
         clickedMesh.traverseAncestors((ancestor) => {
-            if (ancestor.name && ancestor.name.startsWith('Interact_')) {
-                targetGroup = ancestor;
-            }
+            if (ancestor.name && ancestor.name.startsWith('Interact_')) targetGroup = ancestor;
         });
     }
 
@@ -195,24 +229,75 @@ window.addEventListener('click', (event) => {
     const displayName = targetGroup.name.replace('Interact_', '');
     infoDiv.innerHTML = `<strong>${displayName}</strong><br><span style="font-size: 12px; color: white;">Click de xem chi tiet</span>`;
     infoDiv.style.display = 'block';
-    if (targetGroup.name === 'Interact_den') {
-        if (deskLightRef) {
-            // Đảo ngược trạng thái hiện tại (Tắt thành Bật, Bật thành Tắt)
-            deskLightRef.visible = !deskLightRef.visible; 
-            console.log("Trạng thái đèn bàn:", deskLightRef.visible ? "BẬT" : "TẮT");
-        }
+
+    if (targetGroup.name === 'Interact_den' && deskLightRef) {
+        deskLightRef.visible = !deskLightRef.visible; 
+        console.log("Trạng thái đèn bàn:", deskLightRef.visible ? "BẬT" : "TẮT");
     }
 });
 
-// 9. VÒNG LẶP RENDER
+// 9. VÒNG LẶP RENDER VÀ VẬT LÝ DI CHUYỂN
 function animate() {
     requestAnimationFrame(animate);
-    controls.update();
-    renderer.render(scene, camera);
-    labelRenderer.render(scene, camera); // Render UI 2D
-}
 
-animate();
+    if (controls.isLocked) {
+        const delta = clock.getDelta();
+
+        velocity.x -= velocity.x * 10.0 * delta;
+        velocity.z -= velocity.z * 10.0 * delta;
+
+        direction.z = Number(moveForward) - Number(moveBackward);
+        direction.x = Number(moveRight) - Number(moveLeft);
+        direction.normalize();
+
+        if (moveForward || moveBackward) velocity.z -= direction.z * 50.0 * delta;
+        if (moveLeft || moveRight) velocity.x -= direction.x * 50.0 * delta;
+
+        // ==========================================
+        // VẬT LÝ 1: VA CHẠM TƯỜNG VÀ ĐỒ VẬT (COLLISION)
+        // ==========================================
+        const moveVector = new THREE.Vector3(-velocity.x * delta, 0, -velocity.z * delta);
+        const moveDistance = moveVector.length();
+
+        if (moveDistance > 0) {
+            // Bắn tia từ bụng nhân vật ra hướng đang đi
+            const moveDir = moveVector.clone().normalize();
+            raycaster.set(camera.position, moveDir);
+            
+            // Tìm vật cản
+            const intersects = raycaster.intersectObjects(collidableObjects, false);
+
+            // Bán kính bụng nhân vật = 0.5 mét. Nếu tường/đồ vật gần hơn khoảng này -> NGỪNG LẠI!
+            if (intersects.length > 0 && intersects[0].distance < 0.5) {
+                velocity.x = 0;
+                velocity.z = 0;
+            } else {
+                // Nếu đường trống thì cho phép bước đi
+                controls.moveRight(-velocity.x * delta);
+                controls.moveForward(-velocity.z * delta);
+            }
+        }
+
+        // ==========================================
+        // VẬT LÝ 2: TRỌNG LỰC & CHẠM ĐẤT
+        // ==========================================
+        // Bắn tia từ camera thẳng xuống mặt đất (-1)
+        raycaster.set(camera.position, new THREE.Vector3(0, -1, 0));
+        const floorIntersects = raycaster.intersectObjects(collidableObjects, false);
+
+        if (floorIntersects.length > 0) {
+            // Đặt chân lên mặt sàn đó, và đẩy camera lên bằng đúng chiều cao mắt người (1.6m)
+            const floorHeight = floorIntersects[0].point.y;
+            camera.position.y = floorHeight + 1.6;
+        } else {
+            // Đề phòng bay ra ngoài không gian không có sàn
+            camera.position.y = 1.6; 
+        }
+    }
+
+    renderer.render(scene, camera);
+    labelRenderer.render(scene, camera); 
+}
 
 // 10. XỬ LÝ KHI RESIZE TRÌNH DUYỆT
 window.addEventListener('resize', () => {
