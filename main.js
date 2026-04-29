@@ -154,7 +154,24 @@ loader.load(
         console.error('Lỗi tải file modeldone1.glb:', error);
     }
 );
+// --- BẢN ĐỒ ẢNH POSTER ---
+const posterGallery = {
+    "Object_24": "/assets/images/fear_the_dark_diffuse.png", 
+    "Object_25": "/assets/images/fear_the_dark.001_diffuse.jpeg",
+    "Object_26": "/assets/images/fear_the_dark.002_diffuse.jpeg",
+    "Object_31": "/assets/images/mad_max_fury_road_web_by_3ftdeep-d8qr5za_diffuse.png",
+    "Object_32": "/assets/images/mad_max_fury_road_web_by_3ftdeep-d8qr5za.001_diffuse.png",
+    "Object_36": "/assets/images/obey_the_god_diffuse.png",
+    "Object_37": "/assets/images/paper_diffuse.jpeg",
+    "Object_38": "/assets/images/paper.001_diffuse.jpeg",
+    "Object_39": "/assets/images/paper.002_diffuse.jpeg",
+    "Object_40": "/assets/images/paper.003_diffuse.jpeg",
+    "Object_41": "/assets/images/paper.004_diffuse.jpeg",
+    "Object_42": "/assets/images/paper.005_diffuse.jpeg",
+};
 
+const zoomOverlay = document.getElementById('zoom-overlay');
+const zoomedImage = document.getElementById('zoomed-image');
 // 8. BẮT SỰ KIỆN CLICK (RAYCASTER)
 window.addEventListener('click', (event) => {
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
@@ -195,7 +212,19 @@ window.addEventListener('click', (event) => {
     const displayName = targetGroup.name.replace('Interact_', '');
     infoDiv.innerHTML = `<strong>${displayName}</strong><br><span style="font-size: 12px; color: white;">Click de xem chi tiet</span>`;
     infoDiv.style.display = 'block';
-    if (targetGroup.name === 'Interact_den') {
+    // --- PHẦN XỬ LÝ ZOOM POSTER CON ---
+    if (targetGroup.name === 'Interact_tranh1') {
+        const childName = clickedMesh.name; // Lấy tên "Object_24", "Object_25"...
+        
+        if (posterGallery[childName]) {
+            zoomedImage.src = posterGallery[childName];
+            zoomedImage.style.transform = "scaleY(-1)";
+            zoomOverlay.style.display = 'flex';
+            controls.enabled = false; // Khóa camera để xem ảnh
+            console.log("Đang zoom poster:", childName);
+        }
+    }
+    else if (targetGroup.name === 'Interact_den') {
         if (deskLightRef) {
             // Đảo ngược trạng thái hiện tại (Tắt thành Bật, Bật thành Tắt)
             deskLightRef.visible = !deskLightRef.visible; 
@@ -203,7 +232,14 @@ window.addEventListener('click', (event) => {
         }
     }
 });
-
+// Sự kiện click để ĐÓNG ảnh khi người dùng click vào màn hình đen
+if (zoomOverlay) {
+    zoomOverlay.onclick = () => {
+        event.stopPropagation();
+        zoomOverlay.style.display = 'none';
+        controls.enabled = true; // Mở lại camera để tiếp tục khám phá
+    };
+}
 // 9. VÒNG LẶP RENDER
 function animate() {
     requestAnimationFrame(animate);
