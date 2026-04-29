@@ -1,23 +1,25 @@
 import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 
 // 1. KHỞI TẠO SCENE, CAMERA, RENDERER
 const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xf0f0f0); 
 
 const camera = new THREE.PerspectiveCamera(
     75,
     window.innerWidth / window.innerHeight,
-    0.1,
+    0.01, // FIX 1: Đổi từ 0.1 thành 0.01 (Mắt camera nhìn sát vật thể đến 1cm vẫn không bị xuyên)
     1000
 );
-camera.position.set(5, 5, 5);
+camera.position.set(0, 1.6, 2); 
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(window.devicePixelRatio); 
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Giúp bóng đổ mịn hơn
+renderer.shadowMap.type = THREE.PCFSoftShadowMap; 
 document.body.appendChild(renderer.domElement);
 
 // 2. KHỞI TẠO CSS2DRENDERER (CHO UI LABELS)
@@ -29,10 +31,39 @@ labelRenderer.domElement.style.left = '0px';
 labelRenderer.domElement.style.pointerEvents = 'none';
 document.body.appendChild(labelRenderer.domElement);
 
-// 3. KHỞI TẠO CONTROLS
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true;
-controls.dampingFactor = 0.05;
+// 3. KHỞI TẠO CONTROLS (GÓC NHÌN THỨ NHẤT AAA)
+const controls = new PointerLockControls(camera, document.body);
+scene.add(camera);
+
+const blocker = document.getElementById('blocker');
+blocker.addEventListener('click', () => { controls.lock(); });
+controls.addEventListener('lock', () => { blocker.style.display = 'none'; });
+controls.addEventListener('unlock', () => { blocker.style.display = 'flex'; });
+
+// Biến vật lý di chuyển
+let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
+const velocity = new THREE.Vector3();
+const direction = new THREE.Vector3();
+const clock = new THREE.Clock();
+
+const onKeyDown = (event) => {
+    switch (event.code) {
+        case 'KeyW': moveForward = true; break;
+        case 'KeyA': moveLeft = true; break;
+        case 'KeyS': moveBackward = true; break;
+        case 'KeyD': moveRight = true; break;
+    }
+};
+const onKeyUp = (event) => {
+    switch (event.code) {
+        case 'KeyW': moveForward = false; break;
+        case 'KeyA': moveLeft = false; break;
+        case 'KeyS': moveBackward = false; break;
+        case 'KeyD': moveRight = false; break;
+    }
+};
+document.addEventListener('keydown', onKeyDown);
+document.addEventListener('keyup', onKeyUp);
 
 // 4. ÁNH SÁNG MÔI TRƯỜNG CƠ BẢN
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
@@ -58,7 +89,8 @@ const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 const loader = new GLTFLoader();
 const interactableObjects = [];
-let deskLightRef = null; // Biến dùng để ghi nhớ và điều khiển bật/tắt đèn bàn
+const collidableObjects = []; // MỚI: Mảng chứa TẤT CẢ tường, sàn, đồ vật để làm vật cản
+let deskLightRef = null;
 // 7. TẢI MODEL VÀ XỬ LÝ (ÁNH SÁNG & TƯƠNG TÁC)
 loader.load(
     '/modeldone1.glb',
@@ -112,6 +144,7 @@ loader.load(
             // BƯỚC B: CHẶN CÁC OBJECT KHÔNG PHẢI MESH
             // ==========================================
             if (!child.isMesh) return;
+            collidableObjects.push(child);
 
             // ==========================================
             // BƯỚC C: XỬ LÝ ĐỔ BÓNG CHO MESH
@@ -155,13 +188,15 @@ loader.load(
     }
 );
 
-// 8. BẮT SỰ KIỆN CLICK (RAYCASTER)
+// 8. BẮT SỰ KIỆN CLICK (RAYCASTER CHO GAME FPS)
 window.addEventListener('click', (event) => {
-    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    if (!controls.isLocked) return; // Bắt buộc phải khóa chuột mới được tương tác
+
+    // Bắn tia từ tâm ngắm (giữa màn hình)
+    mouse.x = 0;
+    mouse.y = 0;
 
     raycaster.setFromCamera(mouse, camera);
-
     const intersects = raycaster.intersectObjects(interactableObjects, false);
 
     if (intersects.length === 0) {
@@ -176,9 +211,7 @@ window.addEventListener('click', (event) => {
         targetGroup = clickedMesh;
     } else {
         clickedMesh.traverseAncestors((ancestor) => {
-            if (ancestor.name && ancestor.name.startsWith('Interact_')) {
-                targetGroup = ancestor;
-            }
+            if (ancestor.name && ancestor.name.startsWith('Interact_')) targetGroup = ancestor;
         });
     }
 
@@ -195,21 +228,101 @@ window.addEventListener('click', (event) => {
     const displayName = targetGroup.name.replace('Interact_', '');
     infoDiv.innerHTML = `<strong>${displayName}</strong><br><span style="font-size: 12px; color: white;">Click de xem chi tiet</span>`;
     infoDiv.style.display = 'block';
-    if (targetGroup.name === 'Interact_den') {
-        if (deskLightRef) {
-            // Đảo ngược trạng thái hiện tại (Tắt thành Bật, Bật thành Tắt)
-            deskLightRef.visible = !deskLightRef.visible; 
-            console.log("Trạng thái đèn bàn:", deskLightRef.visible ? "BẬT" : "TẮT");
-        }
+
+    if (targetGroup.name === 'Interact_den' && deskLightRef) {
+        deskLightRef.visible = !deskLightRef.visible; 
+        console.log("Trạng thái đèn bàn:", deskLightRef.visible ? "BẬT" : "TẮT");
     }
 });
 
-// 9. VÒNG LẶP RENDER
+// 9. VÒNG LẶP RENDER VÀ VẬT LÝ DI CHUYỂN
 function animate() {
     requestAnimationFrame(animate);
-    controls.update();
+
+    const delta = Math.min(clock.getDelta(), 0.1);
+
+    if (controls.isLocked) {
+        velocity.x -= velocity.x * 10.0 * delta;
+        velocity.z -= velocity.z * 10.0 * delta;
+
+        direction.z = Number(moveForward) - Number(moveBackward);
+        direction.x = Number(moveRight) - Number(moveLeft);
+        direction.normalize();
+
+        // Tốc độ đi bộ vừa phải
+        if (moveForward || moveBackward) velocity.z -= direction.z * 25.0 * delta;
+        if (moveLeft || moveRight) velocity.x -= direction.x * 25.0 * delta;
+
+        // Lực di chuyển dự kiến
+        const fwVelocity = -velocity.z * delta;
+        const sideVelocity = -velocity.x * delta;
+
+        // Lấy vector Hướng nhìn (Forward) và Hướng ngang (Right)
+        const camDir = new THREE.Vector3();
+        camera.getWorldDirection(camDir);
+        camDir.y = 0; 
+        camDir.normalize();
+
+        const camRight = new THREE.Vector3();
+        
+        // ==========================================
+        // FIX BUG ĐI XUYÊN TƯỜNG NGANG CHÍNH LÀ Ở ĐÂY:
+        // Đảo ngược vị trí thành (camDir, camera.up) để tia Ray chỉ đúng sang PHẢI
+        // ==========================================
+        camRight.crossVectors(camDir, camera.up).normalize();
+
+        // ==========================================
+        // VẬT LÝ 1: KIỂM TRA VA CHẠM ĐỘC LẬP & TRƯỢT TƯỜNG
+        // ==========================================
+        let allowZ = true;
+        let allowX = true;
+        const collisionDistance = 0.5; // Bán kính bụng nhân vật
+
+        // Bắn tia hướng Tiến/Lùi
+        if (Math.abs(fwVelocity) > 0) {
+            const rayDirZ = camDir.clone().multiplyScalar(Math.sign(fwVelocity));
+            raycaster.set(camera.position, rayDirZ);
+            const hitsZ = raycaster.intersectObjects(collidableObjects, false);
+            if (hitsZ.length > 0 && hitsZ[0].distance < collisionDistance) {
+                allowZ = false;
+            }
+        }
+
+        // Bắn tia hướng Trái/Phải
+        if (Math.abs(sideVelocity) > 0) {
+            const rayDirX = camRight.clone().multiplyScalar(Math.sign(sideVelocity));
+            raycaster.set(camera.position, rayDirX);
+            const hitsX = raycaster.intersectObjects(collidableObjects, false);
+            if (hitsX.length > 0 && hitsX[0].distance < collisionDistance) {
+                allowX = false;
+            }
+        }
+
+        // Áp dụng di chuyển độc lập
+        if (allowX) controls.moveRight(sideVelocity);
+        else velocity.x = 0; 
+
+        if (allowZ) controls.moveForward(fwVelocity);
+        else velocity.z = 0;
+
+        // ==========================================
+        // VẬT LÝ 2: TRỌNG LỰC & CHẠM ĐẤT
+        // ==========================================
+        raycaster.set(camera.position, new THREE.Vector3(0, -1, 0));
+        const floorIntersects = raycaster.intersectObjects(collidableObjects, false);
+
+        if (floorIntersects.length > 0) {
+            const floorHeight = floorIntersects[0].point.y;
+            if (floorHeight < camera.position.y + 1.0) {
+                camera.position.y = floorHeight + 1.6;
+            }
+        } else {
+            camera.position.y = 1.6; 
+        }
+    }
+
     renderer.render(scene, camera);
-    labelRenderer.render(scene, camera); // Render UI 2D
+    labelRenderer.render(scene, camera); 
 }
 
 animate();
