@@ -241,7 +241,8 @@ function animate() {
     requestAnimationFrame(animate);
 
     if (controls.isLocked) {
-        const delta = clock.getDelta();
+        // FIX 1: Chống lỗi "Vụ nổ thời gian" (Delta Time Explosion)
+        const delta = Math.min(clock.getDelta(), 0.1);
 
         velocity.x -= velocity.x * 10.0 * delta;
         velocity.z -= velocity.z * 10.0 * delta;
@@ -260,19 +261,15 @@ function animate() {
         const moveDistance = moveVector.length();
 
         if (moveDistance > 0) {
-            // Bắn tia từ bụng nhân vật ra hướng đang đi
             const moveDir = moveVector.clone().normalize();
             raycaster.set(camera.position, moveDir);
             
-            // Tìm vật cản
             const intersects = raycaster.intersectObjects(collidableObjects, false);
 
-            // Bán kính bụng nhân vật = 0.5 mét. Nếu tường/đồ vật gần hơn khoảng này -> NGỪNG LẠI!
             if (intersects.length > 0 && intersects[0].distance < 0.5) {
                 velocity.x = 0;
                 velocity.z = 0;
             } else {
-                // Nếu đường trống thì cho phép bước đi
                 controls.moveRight(-velocity.x * delta);
                 controls.moveForward(-velocity.z * delta);
             }
@@ -281,16 +278,16 @@ function animate() {
         // ==========================================
         // VẬT LÝ 2: TRỌNG LỰC & CHẠM ĐẤT
         // ==========================================
-        // Bắn tia từ camera thẳng xuống mặt đất (-1)
         raycaster.set(camera.position, new THREE.Vector3(0, -1, 0));
         const floorIntersects = raycaster.intersectObjects(collidableObjects, false);
 
         if (floorIntersects.length > 0) {
-            // Đặt chân lên mặt sàn đó, và đẩy camera lên bằng đúng chiều cao mắt người (1.6m)
             const floorHeight = floorIntersects[0].point.y;
-            camera.position.y = floorHeight + 1.6;
+            // FIX 2: Chống lỗi bị đẩy tít lên trần nhà nếu đứng dưới cái tủ cao
+            if (floorHeight < camera.position.y + 1.0) {
+                camera.position.y = floorHeight + 1.6;
+            }
         } else {
-            // Đề phòng bay ra ngoài không gian không có sàn
             camera.position.y = 1.6; 
         }
     }
@@ -298,6 +295,9 @@ function animate() {
     renderer.render(scene, camera);
     labelRenderer.render(scene, camera); 
 }
+
+// BẮT BUỘC PHẢI CÓ DÒNG NÀY ĐỂ KHỞI ĐỘNG GAME!
+animate();
 
 // 10. XỬ LÝ KHI RESIZE TRÌNH DUYỆT
 window.addEventListener('resize', () => {
