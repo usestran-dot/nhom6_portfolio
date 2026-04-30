@@ -48,3 +48,61 @@ canvas {
     pointer-events: none; /* Cực kỳ quan trọng để tia ray bắn xuyên qua */
     z-index: 100;
 }
+
+/* =========================================
+   UI MÀN HÌNH CHỜ (LOADING SCREEN) - CODE MỚI THÊM
+   ========================================= */
+#loading-screen {
+    position: fixed; /* Che phủ toàn bộ màn hình */
+    top: 0; 
+    left: 0; 
+    width: 100%; 
+    height: 100%;
+    background-color: #0f0f0f; /* Nền tối hơn cả body để tạo sự bí ẩn */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999; /* Đảm bảo đè lên trên tất cả UI khác, kể cả #blocker */
+    transition: opacity 0.5s ease; /* Hiệu ứng mờ dần mượt mà */
+}
+
+.loader-container { 
+    width: 300px; 
+    text-align: center; 
+    color: white; 
+}
+
+.loader-title { 
+    letter-spacing: 2px; 
+    text-transform: uppercase; 
+    font-size: 1.2rem; 
+    margin-bottom: 20px;
+    color: #ffffff;
+}
+
+.progress-bar-container { 
+    width: 100%; 
+    height: 8px; 
+    background: #333; 
+    border-radius: 4px; 
+    overflow: hidden; 
+    margin: 15px 0; 
+}
+
+#progress-bar { 
+    width: 0%; 
+    height: 100%; 
+    background: #00ffcc; /* Màu Cyan (Xanh lơ) chuẩn Hacker */
+    transition: width 0.1s linear; 
+}
+
+#progress-text {
+    font-size: 0.9rem;
+    color: #aaaaaa;
+}
+
+/* Class dùng để ẩn màn hình bằng JavaScript */
+.fade-out { 
+    opacity: 0; 
+    pointer-events: none; 
+}

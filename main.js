@@ -84,13 +84,40 @@ infoDiv.style.marginTop = '-1em';
 const infoLabel = new CSS2DObject(infoDiv);
 scene.add(infoLabel);
 
-// 6. RAYCASTER VÀ LOADER
+// 6. RAYCASTER, LOADING MANAGER VÀ LOADER
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
-const loader = new GLTFLoader();
+
+// --- MỚI: CẤU HÌNH LOADING MANAGER ---
+const loadingManager = new THREE.LoadingManager();
+const loadingScreen = document.getElementById('loading-screen');
+const progressBar = document.getElementById('progress-bar');
+const progressText = document.getElementById('progress-text');
+
+// Lắng nghe tiến độ để đẩy thanh UI
+loadingManager.onProgress = function(url, itemsLoaded, itemsTotal) {
+    const progress = (itemsLoaded / itemsTotal) * 100;
+    if (progressBar) progressBar.style.width = progress + '%';
+    if (progressText) progressText.innerText = `Loading... ${Math.floor(progress)}%`;
+};
+
+// Kích hoạt khi mọi thứ đã load xong 100%
+loadingManager.onLoad = function() {
+    if (loadingScreen) {
+        loadingScreen.classList.add('fade-out'); // Gọi class CSS làm mờ
+        setTimeout(() => {
+            loadingScreen.style.display = 'none'; // Xóa hẳn thẻ div khỏi lưới chuột
+        }, 500);
+    }
+};
+
+// --- CẬP NHẬT: GẮN MANAGER VÀO LOADER ---
+const loader = new GLTFLoader(loadingManager);
+
 const interactableObjects = [];
-const collidableObjects = []; // MỚI: Mảng chứa TẤT CẢ tường, sàn, đồ vật để làm vật cản
+const collidableObjects = []; // Mảng chứa TẤT CẢ tường, sàn, đồ vật để làm vật cản
 let deskLightRef = null;
+
 // 7. TẢI MODEL VÀ XỬ LÝ (ÁNH SÁNG & TƯƠNG TÁC)
 loader.load(
     '/modeldone1.glb',
