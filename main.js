@@ -3,6 +3,160 @@ import { PointerLockControls } from 'three/addons/controls/PointerLockControls.j
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 
+// --- 1. GIAO DIỆN DESKTOP PORTFOLIO (HỖ TRỢ VIEW CHI TIẾT & NÚT BACK) ---
+const overlay = document.createElement('div');
+overlay.id = 'popup-overlay';
+// Giao diện bao gồm 2 phần: Desktop (chứa icon) và Detail (chứa nội dung)
+overlay.innerHTML = `
+    <div id="computer-popup">
+        <div id="desktop-view">
+            <div id="desktop-icons">
+                <div class="folder-icon" onclick="window.open('https://www.google.com', '_blank')"><div>🌐</div><div>Browser</div></div>
+                <div class="folder-icon" onclick="showPortfolio('team')"><div>👥</div><div>Team</div></div>
+                <div class="folder-icon" onclick="showPortfolio('works')"><div>📂</div><div>Works</div></div>
+                <div class="folder-icon" onclick="showPortfolio('tech')"><div>🛠️</div><div>Tech</div></div>
+                <div class="folder-icon" onclick="showPortfolio('contact')"><div>✉️</div><div>Contact</div></div>
+            </div>
+        </div>
+
+        <div id="detail-view" style="display: none;">
+            <div class="nav-bar">
+                <button onclick="goBack()" class="back-btn">← Back</button>
+            </div>
+            <div id="content-body">
+                </div>
+        </div>
+    </div>
+`;
+document.body.appendChild(overlay);
+
+// Dữ liệu nội dung (Tôi đã thêm format giống code để nhìn chuyên nghiệp hơn)
+const portfolioData = {
+    team: `
+        <div class="code-view scrollable-content">
+            <span class="html-tag animate-faint">&lt;danh-sach-nhan-su&gt;</span>
+            <div class="indent-1">
+                <h1 class="glitch-text animate-slide-up" style="--color: #89ddff; --glow: rgba(137, 221, 255, 0.5);">THÀNH_VIÊN_CỐT_LÕI</h1>
+                <p class="status-tag animate-flicker">[QUYỀN_TRUY_CẬP: ĐÃ_CẤP]</p>
+                
+                <div class="indent-1 team-container">
+                    <ul class="code-list">
+                        <li class="staggered-item" style="--delay: 0.1s"><span class="id-tag">[ID_01]</span> <span class="name">TRẦN HẢI ĐĂNG</span> <span class="code-comment">(24022957)</span></li>
+                        <li class="staggered-item" style="--delay: 0.2s"><span class="id-tag">[ID_02]</span> <span class="name">NGUYỄN VĂN MẠNH</span> <span class="code-comment">(24023031)</span></li>
+                        <li class="staggered-item" style="--delay: 0.3s"><span class="id-tag">[ID_03]</span> <span class="name">NGUYỄN PHÚC PHƯƠNG</span> <span class="code-comment">(24023055)</span></li>
+                        <li class="staggered-item" style="--delay: 0.4s"><span class="id-tag">[ID_04]</span> <span class="name">TRẦN ĐỨC DUY</span> <span class="code-comment">(24022979)</span></li>
+                        <li class="staggered-item" style="--delay: 0.5s"><span class="id-tag">[ID_05]</span> <span class="name">NGUYỄN THỊ XUÂN MAI</span> <span class="code-comment">(24023028)</span></li>
+                    </ul>
+                </div>
+
+                <p class="system-msg animate-fade-in">// Tổng_số_thành_viên: 05 | Trạng_thái_đồng_bộ: 100%</p>
+            </div>
+            <span class="html-tag animate-faint">&lt;/dong-danh-sach&gt;</span>
+        </div>
+    `,
+    
+    works: `
+        <div class="code-view scrollable-content">
+            <span class="html-tag animate-faint">&lt;nhat-ky-du-an&gt;</span>
+            <div class="indent-1">
+                <h1 class="glitch-text animate-slide-up" style="--color: #f07178; --glow: rgba(240, 113, 120, 0.5);">DỰ_ÁN_ĐÃ_TRIỂN_KHAI_01</h1>
+                <p class="status-tag animate-flicker" style="color: #f07178;">[PHIÊN_BẢN: 1.0.4 - ỔN_ĐỊNH]</p>
+                
+                <div class="project-card animate-pop-in">
+                    <p><strong>MỤC TIÊU:</strong> Web Portfolio - Phòng Làm Việc 3D</p>
+                    <p class="desc-text">Mô phỏng không gian làm việc thực tế ảo. Tương tác thực thể thông qua <span class="highlight">Engine Raycasting</span> tối ưu.</p>
+                </div>
+
+                <p class="system-msg animate-fade-in">// Trạng_thái: Đang hoạt động<br>// Kho lưu trữ: usestran-dot/nhom6_portfolio</p>
+            </div>
+            <span class="html-tag animate-faint">&lt;/ket-thuc-nhat-ky&gt;</span>
+        </div>
+    `,
+    
+   tech: `
+        <div class="code-view scrollable-content">
+            <span class="html-tag animate-faint">&lt;chan-doan-he-thong&gt;</span>
+            <div class="indent-1">
+                <h1 class="glitch-text animate-slide-up" style="--color: #c3e88d; --glow: rgba(195, 232, 141, 0.5);">BẢNG_CÔNG_NGHỆ</h1>
+                <p class="status-tag animate-flicker" style="color: #c3e88d;">[TRẠNG_THÁI: TỐI_ƯU]</p>
+                
+                <div class="tech-table animate-pop-in">
+                    <div class="table-row header">
+                        <div class="cell">PHÂN LOẠI</div>
+                        <div class="cell">THÔNG SỐ CỐT LÕI</div>
+                    </div>
+                    <div class="table-row staggered-item" style="--delay: 0.1s">
+                        <div class="cell category">ĐỒ HỌA</div>
+                        <div class="cell">Three.js / Blender / WebGL 2.0</div>
+                    </div>
+                    <div class="table-row staggered-item" style="--delay: 0.2s">
+                        <div class="cell category">CỐT LÕI</div>
+                        <div class="cell">Vite / JavaScript / GitHub</div>
+                    </div>
+                    <div class="table-row staggered-item" style="--delay: 0.3s">
+                        <div class="cell category">VẬT LÝ</div>
+                        <div class="cell">Raycasting / PointerLock</div>
+                    </div>
+                </div>
+
+                <p class="system-msg animate-fade-in" style="margin-top: 15px;">
+                    // Quét hệ thống hoàn tất. Dữ liệu đã được tối ưu hóa.
+                </p>
+            </div>
+            <span class="html-tag animate-faint">&lt;/hoan-tat-chan-doan&gt;</span>
+        </div>
+    `,
+    contact: `
+        <div class="code-view scrollable-content">
+            <span class="html-tag animate-faint">&lt;lien-ket-truyen-thong&gt;</span>
+            <div class="indent-1">
+                <h1 class="glitch-text animate-slide-up" style="--color: #c792ea; --glow: rgba(199, 146, 234, 0.5);">TRUYỀN_TÍN_HIỆU</h1>
+                <p class="status-tag animate-flicker" style="color: #c792ea;">[ĐANG_CHỜ_TÍN_HIỆU_ĐẾN]</p>
+
+                <div class="contact-hub animate-zoom-in">
+                    <p class="email-display">lienhe.nhom6@deptrai.com</p>
+                    <div class="social-icons-bar">
+                        <span class="icon-pulse">🐦</span> <span class="icon-pulse">in</span> <span class="icon-pulse">📁</span> <span class="icon-pulse">M</span> <span class="icon-pulse">✉️</span>
+                    </div>
+                </div>
+
+                <div class="encryption-log animate-fade-in">
+                    <p>>> Đường truyền: Đã thiết lập<br>>> Mã hóa: AES-256</p>
+                </div>
+            </div>
+            <span class="html-tag animate-faint">&lt;/duong-truyen-dang-mo&gt;</span>
+        </div>
+    `
+};
+
+// Hàm hiển thị chi tiết
+window.showPortfolio = (type) => {
+    const desktop = document.getElementById('desktop-view');
+    const detail = document.getElementById('detail-view');
+    const body = document.getElementById('content-body');
+
+    if (portfolioData[type]) {
+        body.innerHTML = portfolioData[type];
+        desktop.style.display = 'none';
+        detail.style.display = 'block';
+    }
+};
+
+// Hàm quay lại màn hình chính
+window.goBack = () => {
+    document.getElementById('desktop-view').style.display = 'block';
+    document.getElementById('detail-view').style.display = 'none';
+};
+
+// Click ra ngoài để thoát chế độ dùng máy tính 
+overlay.onclick = (e) => {
+    if (e.target.id === 'popup-overlay') {
+        overlay.style.display = 'none';
+        goBack(); // Reset về màn hình icon cho lần mở sau
+        if (typeof controls !== 'undefined') controls.lock(); 
+    }
+};
+
 // 1. KHỞI TẠO SCENE, CAMERA, RENDERER
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xf0f0f0); 
@@ -64,6 +218,32 @@ const onKeyUp = (event) => {
 };
 document.addEventListener('keydown', onKeyDown);
 document.addEventListener('keyup', onKeyUp);
+document.addEventListener('mousedown', () => {
+    if (!controls.isLocked) return;
+    raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+    const intersects = raycaster.intersectObjects(interactableObjects, true);
+
+    if (intersects.length > 0) {
+        const obj = intersects[0].object;
+        let interactName = "";
+        let curr = obj;
+        while (curr) {
+            if (curr.name && curr.name.startsWith('Interact_')) {
+                interactName = curr.name.toLowerCase();
+                break;
+            }
+            curr = curr.parent;
+        }
+
+        if (interactName.includes('screen') || interactName.includes('manhinh')) {
+            controls.unlock();
+            overlay.style.display = 'block';
+        } else if (interactName.includes('den') && deskLightRef) {
+            deskLightRef.visible = !deskLightRef.visible;
+        }
+    }
+});
+
 
 // 4. ÁNH SÁNG MÔI TRƯỜNG CƠ BẢN
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
