@@ -116,36 +116,6 @@ p { color: #d0d0d0; line-height: 1.6; font-size: 1.1rem; }
 
 .social-icons { font-size: 1.5rem; margin-top: 20px; letter-spacing: 15px; }
 
-/* 1. KHẢ NĂNG CUỘN NỘI DUNG */
-#computer-popup {
-    background: #0d0f14;
-    border: 1px solid #1e212b;
-    display: flex;
-    flex-direction: column;
-    height: 80vh; /* Cố định chiều cao để kích hoạt cuộn */
-    overflow: hidden;
-}
-
-.scrollable-content {
-    overflow-y: auto; /* Cho phép cuộn dọc */
-    flex: 1;
-    padding-right: 10px;
-    scrollbar-width: thin;
-    scrollbar-color: #89ddff #0d0f14;
-}
-
-/* Thanh cuộn phong cách Cyber */
-.scrollable-content::-webkit-scrollbar {
-    width: 6px;
-}
-.scrollable-content::-webkit-scrollbar-track {
-    background: #0d0f14;
-}
-.scrollable-content::-webkit-scrollbar-thumb {
-    background: linear-gradient(to bottom, #89ddff, #c792ea);
-    border-radius: 10px;
-}
-
 /* 2. HIỆU ỨNG CHỮ GLITCH & DẢI MÀU */
 .glitch-text {
     position: relative;
