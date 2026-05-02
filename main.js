@@ -15,6 +15,24 @@ const camera = new THREE.PerspectiveCamera(
 );
 camera.position.set(0, 1.6, 2); 
 
+// KHỞI TẠO ÂM THANH
+const listener = new THREE.AudioListener();
+camera.add(listener);
+
+const audioLoader = new THREE.AudioLoader();
+const clickSuccessSound = new THREE.Audio(listener);
+const clickMissSound = new THREE.Audio(listener);
+
+// Load file từ thư mục public/sounds đã tạo
+audioLoader.load('/sounds/success.wav', (buffer) => {
+    clickSuccessSound.setBuffer(buffer);
+    clickSuccessSound.setVolume(0.7);
+});
+
+audioLoader.load('/sounds/miss.wav', (buffer) => {
+    clickMissSound.setBuffer(buffer);
+    clickMissSound.setVolume(0.95);
+});
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio); 
@@ -228,11 +246,15 @@ window.addEventListener('click', (event) => {
 
     if (intersects.length === 0) {
         infoDiv.style.display = 'none';
+        if (clickMissSound.isPlaying) clickMissSound.stop();
+clickMissSound.play();
         return;
     }
 
     const clickedMesh = intersects[0].object;
     let targetGroup = null;
+    if (clickSuccessSound.isPlaying) clickSuccessSound.stop();
+clickSuccessSound.play();
 
     if (clickedMesh.name.startsWith('Interact_')) {
         targetGroup = clickedMesh;
