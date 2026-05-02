@@ -35,7 +35,8 @@ const portfolioData = {
     team: `
         <div class="code-view scrollable-content">
             <div class="indent-1">
-                <h1 class="glitch-text animate-slide-up animate-flicker" style="--color: #89ddff; --glow: rgba(137, 221, 255, 0.5);">THÀNH VIÊN NHÓM 6</h1>
+                <h1 class="glitch-text animate-slide-up" style="--color: #89ddff; --glow: rgba(137, 221, 255, 0.5);">THÀNH VIÊN CỐT LÕI</h1>
+                <p class="status-tag animate-flicker">[NHÓM 6]</p>
                 <ul class="code-list indent-1">
                     <li class="staggered-item" style="--delay: 0.1s"><span class="id-tag">[ID 01]</span> <span class="name">TRẦN HẢI ĐĂNG</span> <span class="code-comment">(24022957)</span></li>
                     <li class="staggered-item" style="--delay: 0.2s"><span class="id-tag">[ID 02]</span> <span class="name">NGUYỄN VĂN MẠNH</span> <span class="code-comment">(24023031)</span></li>
@@ -53,13 +54,10 @@ const portfolioData = {
                 <h1 class="glitch-text animate-slide-up" style="--color: #f07178; --glow: rgba(240, 113, 120, 0.5);">DỰ ÁN ĐÃ TRIỂN KHAI</h1>
                 <p class="status-tag animate-flicker" style="color: #f07178;">[PHIÊN BẢN: 2.0.2.6 - ỔN ĐỊNH]</p>
                 <div class="project-card animate-pop-in">
-                    <p><strong>MỤC TIÊU:</strong> Web Portfolio 3D - Phòng Làm Việc 3D</p>
-                   <p class="desc-text">
-                Xây dựng portfolio 3D tương tác dạng phòng làm việc, cho phép người dùng 
-                <span class="highlight">tương tác với đồ vật</span> (màn hình, poster...) để khám phá hồ sơ và kỹ năng.
-            </p>
-        </div>
-                <p class="system-msg animate-fade-in">Kho lưu trữ: usestran-dot/nhom6_portfolio</p>
+                    <p><strong>MỤC TIÊU:</strong> Web Portfolio - Phòng Làm Việc 3D</p>
+                    <p class="desc-text">Mô phỏng không gian thực tế ảo bằng <span class="highlight">Engine Raycasting</span>.</p>
+                </div>
+                <p class="system-msg animate-fade-in">// Trạng thái: Đang hoạt động | Kho lưu trữ: usestran-dot/nhom6_portfolio</p>
             </div>
         </div>
     `,
@@ -70,9 +68,9 @@ const portfolioData = {
                 <h1 class="glitch-text animate-slide-up" style="--color: #c3e88d; --glow: rgba(195, 232, 141, 0.5);">BẢNG CÔNG NGHỆ</h1>
                 <div class="tech-table animate-pop-in">
                     <div class="table-row header"><div class="cell">PHÂN LOẠI</div><div class="cell">THÔNG SỐ CỐT LÕI</div></div>
-                    <div class="table-row staggered-item" style="--delay: 0.1s"><div class="cell category">ĐỒ HỌA</div><div class="cell">Three.js / Blender / WebGL 2.0 / ...</div></div>
-                    <div class="table-row staggered-item" style="--delay: 0.2s"><div class="cell category">CỐT LÕI</div><div class="cell">Vite / JavaScript / GitHub / ...</div></div>
-                    <div class="table-row staggered-item" style="--delay: 0.3s"><div class="cell category">VẬT LÝ</div><div class="cell">Raycasting / PointerLock / ...</div></div>
+                    <div class="table-row staggered-item" style="--delay: 0.1s"><div class="cell category">ĐỒ HỌA</div><div class="cell">Three.js / Blender / WebGL 2.0</div></div>
+                    <div class="table-row staggered-item" style="--delay: 0.2s"><div class="cell category">CỐT LÕI</div><div class="cell">Vite / JavaScript / GitHub</div></div>
+                    <div class="table-row staggered-item" style="--delay: 0.3s"><div class="cell category">VẬT LÝ</div><div class="cell">Raycasting / PointerLock</div></div>
                 </div>
             </div>
         </div>
@@ -81,7 +79,7 @@ const portfolioData = {
     contact: `
         <div class="code-view scrollable-content">
             <div class="indent-1">
-                <h1 class="glitch-text animate-slide-up" style="--color: #c792ea; --glow: rgba(199, 146, 234, 0.5);">LIÊN HỆ TẠI:</h1>
+                <h1 class="glitch-text animate-slide-up" style="--color: #c792ea; --glow: rgba(199, 146, 234, 0.5);">TRUYỀN TÍN HIỆU</h1>
                 <div class="contact-hub animate-zoom-in">
                     <p class="email-display">lienhe.nhom6@email.com</p>
                     <div class="social-icons-bar">🐦 📁 ✉️</div>
