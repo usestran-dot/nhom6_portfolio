@@ -26,12 +26,12 @@ const clickMissSound = new THREE.Audio(listener);
 // Load file từ thư mục public/sounds đã tạo
 audioLoader.load('/sounds/success.wav', (buffer) => {
     clickSuccessSound.setBuffer(buffer);
-    clickSuccessSound.setVolume(0.5);
+    clickSuccessSound.setVolume(0.7);
 });
 
 audioLoader.load('/sounds/miss.wav', (buffer) => {
     clickMissSound.setBuffer(buffer);
-    clickMissSound.setVolume(0.3);
+    clickMissSound.setVolume(0.95);
 });
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
