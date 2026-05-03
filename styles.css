@@ -49,3 +49,89 @@ canvas {
     z-index: 100;
 }
 
+/* =========================================
+   UI MÀN HÌNH CHỜ (LOADING SCREEN) - CODE MỚI THÊM
+   ========================================= */
+#loading-screen {
+    position: fixed; /* Che phủ toàn bộ màn hình */
+    top: 0; 
+    left: 0; 
+    width: 100%; 
+    height: 100%;
+    background-color: #0f0f0f; /* Nền tối hơn cả body để tạo sự bí ẩn */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999; /* Đảm bảo đè lên trên tất cả UI khác, kể cả #blocker */
+    transition: opacity 0.5s ease; /* Hiệu ứng mờ dần mượt mà */
+}
+
+.loader-container { 
+    width: 300px; 
+    text-align: center; 
+    color: white; 
+}
+
+.loader-title { 
+    letter-spacing: 2px; 
+    text-transform: uppercase; 
+    font-size: 2.5rem; 
+    margin-bottom: 20px;
+    color: #ffffff;
+}
+
+.progress-bar-container { 
+    width: 100%; 
+    height: 8px; 
+    background: #333; 
+    border-radius: 4px; 
+    overflow: hidden; 
+    margin: 15px 0; 
+}
+
+#progress-bar { 
+    width: 0%; 
+    height: 100%; 
+    background: #00ffcc; /* Màu Cyan (Xanh lơ) chuẩn Hacker */
+    transition: width 0.1s linear; 
+}
+
+#progress-text {
+    font-size: 0.9rem;
+    color: #aaaaaa;
+}
+
+/* Class dùng để ẩn màn hình bằng JavaScript */
+.fade-out { 
+    opacity: 0; 
+    pointer-events: none; 
+}
+/* =========================================
+   UI NÚT START (HIỆN KHI LOAD XONG)
+   ========================================= */
+.invite-text {
+    color: #aaaaaa;
+    font-size: 1.3rem;
+    margin-bottom: 15px;
+    font-style: italic;
+}
+
+#start-btn {
+    background-color: transparent;
+    color: #00ffcc;
+    border: 2px solid #00ffcc;
+    padding: 10px 30px;
+    font-size: 1.5rem;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+    letter-spacing: 2px;
+}
+
+#start-btn:hover {
+    background-color: #00ffcc;
+    color: #0f0f0f;
+    box-shadow: 0 0 15px #00ffcc;
+}
