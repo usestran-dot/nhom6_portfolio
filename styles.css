@@ -193,3 +193,50 @@ p { color: #d0d0d0; line-height: 1.6; font-size: 1.1rem; }
     color: #0f0f0f;
     box-shadow: 0 0 15px #00ffcc;
 }
+
+/* =========================================
+   UI ĐIỀU KHIỂN ÂM THANH NỀN (BACKGROUND MUSIC)
+========================================= */
+.audio-control {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10000; 
+    display: none; /* MẶC ĐỊNH ẨN ĐI - Sẽ hiện lên bằng JS khi ấn START */
+    align-items: center;
+    gap: 12px;
+    background: rgba(15, 15, 20, 0.6); 
+    padding: 10px 18px;
+    border-radius: 30px;
+    backdrop-filter: blur(8px); 
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(0, 255, 255, 0.2);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    transition: opacity 0.3s ease;
+}
+
+#mute-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.4rem;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease, text-shadow 0.2s ease;
+    outline: none;
+}
+
+#mute-btn:hover {
+    transform: scale(1.15);
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
+}
+
+/* Thanh trượt (Slider) */
+#volume-slider {
+    width: 80px;
+    cursor: pointer;
+    accent-color: #00ffcc; 
+}

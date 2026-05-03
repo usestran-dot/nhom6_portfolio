@@ -8,9 +8,8 @@ import { OutlinePass } from 'three/addons/postprocessing/OutlinePass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
 
-
 // =========================================================================
-// 1. GIAO DIỆN DESKTOP PORTFOLIO & DỮ LIỆU POSTER
+// PHẦN 1: GIAO DIỆN DESKTOP PORTFOLIO & DỮ LIỆU POSTER TRANH
 // =========================================================================
 const overlay = document.createElement('div');
 overlay.id = 'popup-overlay';
@@ -108,7 +107,7 @@ overlay.onclick = (e) => {
     }
 };
 
-// Dữ liệu Poster Zoom
+// Dữ liệu Poster Zoom (Từ nhánh Tương tác tranh)
 const posterGallery = {
     "Interact_tranh1": "/assets/images/paper_diffuse.jpeg", 
     "Interact_tranh2": "/assets/images/paper.002_diffuse.jpeg",
@@ -126,7 +125,7 @@ const zoomOverlay = document.getElementById('zoom-overlay');
 const zoomedImage = document.getElementById('zoomed-image');
 
 // =========================================================================
-// 2. KHỞI TẠO SCENE, MÔI TRƯỜNG, MANAGER VÀ RENDERER HẬU KỲ (COMPOSER)
+// PHẦN 2: KHỞI TẠO SCENE, CAMERA VÀ RENDERER HẬU KỲ
 // =========================================================================
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xf0f0f0); 
@@ -134,69 +133,18 @@ scene.background = new THREE.Color(0xf0f0f0);
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 1000);
 camera.position.set(0, 1.6, 2); 
 
-// Loading Manager
-const loadingManager = new THREE.LoadingManager();
-const loadingScreen = document.getElementById('loading-screen');
-const progressBar = document.getElementById('progress-bar');
-const progressText = document.getElementById('progress-text');
-const loadingProgressDiv = document.getElementById('loading-progress');
-const startContainer = document.getElementById('start-container');
-const startBtn = document.getElementById('start-btn');
-
-loadingManager.onProgress = function(url, itemsLoaded, itemsTotal) {
-    const progress = (itemsLoaded / itemsTotal) * 100;
-    if (progressBar) progressBar.style.width = progress + '%';
-    if (progressText) progressText.innerText = `Loading... ${Math.floor(progress)}%`;
-};
-
-loadingManager.onLoad = function() {
-    if (loadingProgressDiv) loadingProgressDiv.style.display = 'none';
-    if (startContainer) startContainer.style.display = 'block';
-};
-
-if (startBtn) {
-    startBtn.addEventListener('click', () => {
-        if (loadingScreen) {
-            loadingScreen.classList.add('fade-out'); 
-            setTimeout(() => { loadingScreen.style.display = 'none'; }, 500);
-        }
-    });
-}
-
-// Âm thanh
-const listener = new THREE.AudioListener();
-camera.add(listener);
-
-const audioLoader = new THREE.AudioLoader(loadingManager);
-const clickSuccessSound = new THREE.Audio(listener);
-const clickMissSound = new THREE.Audio(listener);
-
-audioLoader.load('/sounds/success.wav', (buffer) => {
-    clickSuccessSound.setBuffer(buffer);
-    clickSuccessSound.setVolume(0.7);
-});
-
-audioLoader.load('/sounds/miss.wav', (buffer) => {
-    clickMissSound.setBuffer(buffer);
-    clickMissSound.setVolume(0.95);
-});
-
-// Renderer Chính
+// Renderer Chính (Tối ưu từ nhánh Tương tác)
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
-// TỐI ƯU LAG: Giới hạn Pixel Ratio tối đa là 2 để cứu GPU trên màn hình độ phân giải cao
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap; 
-
-// FIX LỖI VÂN GỖ: Bật Dithering để làm mịn các dải màu ánh sáng gradient trên tường
 renderer.dithering = true;
-
 document.body.appendChild(renderer.domElement);
 
 // Composer Hậu Kỳ (Phát Sáng Viền & Khử răng cưa)
 const renderTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight, {
-    samples: 4, // Đã đủ để khử răng cưa mượt mà, không cần dùng thêm SMAA
+    samples: 4, 
     type: THREE.HalfFloatType
 });
 const composer = new EffectComposer(renderer, renderTarget);
@@ -224,7 +172,107 @@ labelRenderer.domElement.style.pointerEvents = 'none';
 document.body.appendChild(labelRenderer.domElement);
 
 // =========================================================================
-// 3. ĐIỀU KHIỂN FPS, RAYCASTER VÀ TẢI MÔ HÌNH 3D
+// PHẦN 3: QUẢN LÝ TẢI TÀI NGUYÊN (LOADING MANAGER)
+// =========================================================================
+const loadingManager = new THREE.LoadingManager();
+const loadingScreen = document.getElementById('loading-screen');
+const progressBar = document.getElementById('progress-bar');
+const progressText = document.getElementById('progress-text');
+const loadingProgressDiv = document.getElementById('loading-progress');
+const startContainer = document.getElementById('start-container');
+const startBtn = document.getElementById('start-btn');
+
+loadingManager.onProgress = function(url, itemsLoaded, itemsTotal) {
+    const progress = (itemsLoaded / itemsTotal) * 100;
+    if (progressBar) progressBar.style.width = progress + '%';
+    if (progressText) progressText.innerText = `Loading... ${Math.floor(progress)}%`;
+};
+
+loadingManager.onLoad = function() {
+    if (loadingProgressDiv) loadingProgressDiv.style.display = 'none';
+    if (startContainer) startContainer.style.display = 'block';
+};
+
+// =========================================================================
+// PHẦN 4: HỆ THỐNG ÂM THANH (AUDIO & NÚT START)
+// =========================================================================
+const listener = new THREE.AudioListener();
+camera.add(listener);
+
+const audioLoader = new THREE.AudioLoader(loadingManager);
+const bgMusic = new THREE.Audio(listener);
+const clickSuccessSound = new THREE.Audio(listener);
+const clickMissSound = new THREE.Audio(listener);
+
+audioLoader.load("./sounds/L'indecis - Soulful.mp3", (buffer) => {
+    bgMusic.setBuffer(buffer);
+    bgMusic.setLoop(true);
+    bgMusic.setVolume(0.3);
+});
+
+audioLoader.load('/sounds/success.wav', (buffer) => {
+    clickSuccessSound.setBuffer(buffer);
+    clickSuccessSound.setVolume(0.7);
+});
+
+audioLoader.load('/sounds/miss.wav', (buffer) => {
+    clickMissSound.setBuffer(buffer);
+    clickMissSound.setVolume(0.95);
+});
+
+if (startBtn) {
+    startBtn.addEventListener('click', () => {
+        if (loadingScreen) {
+            loadingScreen.classList.add('fade-out'); 
+            setTimeout(() => { loadingScreen.style.display = 'none'; }, 500);
+        }
+        
+        const audioControlUI = document.getElementById('audio-control');
+        if (audioControlUI) audioControlUI.style.display = 'flex';
+
+        const volumeSlider = document.getElementById('volume-slider');
+        if (!bgMusic.isPlaying && (!volumeSlider || volumeSlider.value > 0)) {
+            bgMusic.play();
+        }
+    });
+}
+
+const muteBtn = document.getElementById('mute-btn');
+const volumeSlider = document.getElementById('volume-slider');
+
+if (muteBtn && volumeSlider) {
+    muteBtn.addEventListener('click', () => {
+        if (bgMusic.context.state === 'suspended') bgMusic.context.resume();
+        if (bgMusic.isPlaying) {
+            bgMusic.pause();
+            muteBtn.innerText = '🔇';
+        } else {
+            bgMusic.play();
+            muteBtn.innerText = '🔊';
+            if (volumeSlider.value == 0) {
+                volumeSlider.value = 0.3;
+                bgMusic.setVolume(0.3);
+            }
+        }
+    });
+
+    volumeSlider.addEventListener('input', (event) => {
+        const vol = parseFloat(event.target.value);
+        bgMusic.setVolume(vol);
+        if (vol === 0) {
+            muteBtn.innerText = '🔇';
+        } else if (!bgMusic.isPlaying && vol > 0) {
+            if (bgMusic.context.state === 'suspended') bgMusic.context.resume();
+            bgMusic.play();
+            muteBtn.innerText = '🔊';
+        } else {
+            muteBtn.innerText = '🔊';
+        }
+    });
+}
+
+// =========================================================================
+// PHẦN 5: ĐIỀU KHIỂN GÓC NHÌN (CONTROLS) VÀ BIẾN VẬT LÝ
 // =========================================================================
 const controls = new PointerLockControls(camera, document.body);
 scene.add(camera);
@@ -232,7 +280,16 @@ scene.add(camera);
 const blocker = document.getElementById('blocker');
 blocker.addEventListener('click', () => { controls.lock(); });
 controls.addEventListener('lock', () => { blocker.style.display = 'none'; });
-controls.addEventListener('unlock', () => { blocker.style.display = 'flex'; });
+
+// ĐÃ SỬA: Bắt sự kiện thả chuột, nếu đang xem tranh hoặc mở máy tính thì KHÔNG hiện chữ
+controls.addEventListener('unlock', () => { 
+    const isZoomOpen = zoomOverlay && zoomOverlay.style.display === 'flex';
+    const isComputerOpen = overlay && overlay.style.display === 'block';
+    
+    if (!isZoomOpen && !isComputerOpen) {
+        blocker.style.display = 'flex'; 
+    }
+});
 
 let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
 const velocity = new THREE.Vector3();
@@ -258,6 +315,9 @@ const onKeyUp = (event) => {
 document.addEventListener('keydown', onKeyDown);
 document.addEventListener('keyup', onKeyUp);
 
+// =========================================================================
+// PHẦN 6: ÁNH SÁNG, TẢI MÔ HÌNH VÀ RAYCASTER (TƯƠNG TÁC)
+// =========================================================================
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
 scene.add(ambientLight);
 
@@ -276,9 +336,8 @@ const infoLabel = new CSS2DObject(infoDiv);
 scene.add(infoLabel);
 
 const raycaster = new THREE.Raycaster();
-// ĐÃ SỬA: Đổi từ 2.5 thành Infinity để cho phép tương tác từ xa
-raycaster.far = Infinity; 
-const mouse = new THREE.Vector2();
+raycaster.far = Infinity; // Cho phép tương tác từ xa (Từ nhánh Tương tác)
+const mouse = new THREE.Vector2(0, 0);
 
 const loader = new GLTFLoader(loadingManager);
 const interactableObjects = [];
@@ -346,56 +405,32 @@ loader.load(
 );
 
 // =========================================================================
-// 4. SỰ KIỆN TƯƠNG TÁC CHUỘT (CLICK, HOVER) & VÒNG LẶP VẬT LÝ GAME
+// PHẦN 7: SỰ KIỆN TƯƠNG TÁC CHUỘT (CLICK, HOVER) & VÒNG LẶP VẬT LÝ GAME
 // =========================================================================
+// Khai báo vector tâm màn hình cố định
+const screenCenter = new THREE.Vector2(0, 0);
 
-// Sự kiện mở máy tính (Có âm thanh)
-document.addEventListener('mousedown', () => {
-    if (!controls.isLocked) return;
-    raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
-    const intersects = raycaster.intersectObjects(interactableObjects, true);
-
-    if (intersects.length > 0) {
-        let interactName = "";
-        let curr = intersects[0].object;
-        while (curr) {
-            if (curr.name && curr.name.startsWith('Interact_')) {
-                interactName = curr.name.toLowerCase();
-                break;
-            }
-            curr = curr.parent;
+// 1. Sự kiện Click chuột (Sử dụng tâm màn hình)
+document.addEventListener('mousedown', (event) => {
+    // Thoát chế độ xem tranh (Zoom)
+    const isZoomOpen = zoomOverlay && zoomOverlay.style.display === 'flex';
+    if (isZoomOpen) {
+        if (event.button === 0) {
+            event.stopPropagation();
+            zoomOverlay.style.display = 'none';
+            controls.enabled = true;
+            controls.lock(); 
         }
-
-        if (interactName.includes('screen') || interactName.includes('manhinh')) {
-            if (clickSuccessSound.isPlaying) clickSuccessSound.stop();
-            clickSuccessSound.play();
-            controls.unlock();
-            if (typeof overlay !== 'undefined') {
-                overlay.style.display = 'block';
-                if (window.goBack) window.goBack(); 
-            }
-        }
-    }
-});
-
-// Sự kiện click Poster, Đèn & Tắt ảnh bằng chuột trái
-window.addEventListener('click', (event) => {
-    if (!controls.isLocked) return; 
-
-    // Đóng ảnh zoom nếu đang mở
-    if (zoomOverlay && zoomOverlay.style.display === 'flex') {
-        zoomOverlay.style.display = 'none'; 
-        controls.enabled = true; 
         return; 
     }
 
-    mouse.x = 0;
-    mouse.y = 0;
-    raycaster.setFromCamera(mouse, camera);
+    if (!controls.isLocked) return;
+
+    // Bắn tia từ TÂM màn hình
+    raycaster.setFromCamera(screenCenter, camera);
     const intersects = raycaster.intersectObjects(interactableObjects, false);
 
     if (intersects.length === 0) {
-        infoDiv.style.display = 'none';
         if (clickMissSound.isPlaying) clickMissSound.stop();
         clickMissSound.play();
         return;
@@ -415,97 +450,56 @@ window.addEventListener('click', (event) => {
         });
     }
 
-    if (!targetGroup) {
-        infoDiv.style.display = 'none';
-        return;
-    }
+    if (!targetGroup) return;
 
-    const targetPosition = new THREE.Vector3();
-    targetGroup.getWorldPosition(targetPosition);
-    infoLabel.position.copy(targetPosition);
-    infoLabel.position.y += 1.5;
+    const interactName = targetGroup.name.toLowerCase();
 
-    const displayName = targetGroup.name.replace('Interact_', '');
-    infoDiv.innerHTML = `<strong>${displayName}</strong><br><span style="font-size: 12px; color: white;">Click de xem chi tiet</span>`;
-    infoDiv.style.display = 'block';
-
-    // Zoom Poster
-    if (targetGroup.name.startsWith('Interact_tranh')) {
+    // Tương tác Màn hình máy tính
+    if (interactName.includes('screen') || interactName.includes('manhinh')) {
+        if (typeof overlay !== 'undefined') {
+            overlay.style.display = 'block';
+            if (window.goBack) window.goBack(); 
+        }
+        controls.unlock(); 
+    } 
+    // Tương tác Xem Poster/Tranh
+    else if (interactName.startsWith('interact_tranh')) {
         const imagePath = posterGallery[targetGroup.name];
         if (imagePath) {
             zoomedImage.src = imagePath;
             zoomedImage.style.transform = "scaleY(-1)"; 
             zoomOverlay.style.display = 'flex';
             controls.enabled = false; 
+            controls.unlock(); 
         }
     }
-    
-    // Đèn bàn
-    if (targetGroup.name === 'Interact_den') {
-        if (deskLightRef) {
-            deskLightRef.visible = !deskLightRef.visible; 
-        }
+    // Tương tác Đèn bàn
+    else if (interactName.includes('den') && deskLightRef) {
+        deskLightRef.visible = !deskLightRef.visible; 
     }
 });
 
-// Sự kiện click chuột PHẢI để ĐÓNG ảnh
+// 2. Sự kiện chuột phải đóng tranh
 if (zoomOverlay) {
     zoomOverlay.addEventListener('contextmenu', (event) => {
         event.preventDefault(); 
-        zoomOverlay.style.display = 'none'; 
-        controls.enabled = true; 
+        if (zoomOverlay.style.display === 'flex') {
+            zoomOverlay.style.display = 'none'; 
+            controls.enabled = true; 
+            controls.lock();
+        }
     });
 }
 
-// Bắt sự kiện Hover chuột phát sáng viền bằng OutlinePass
-window.addEventListener('mousemove', (event) => {
-    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
-    raycaster.setFromCamera(mouse, camera);
-    const intersects = raycaster.intersectObjects(interactableObjects, false);
-
-    if (intersects.length > 0) {
-        const hoveredMesh = intersects[0].object;
-        let targetGroup = null;
-
-        if (hoveredMesh.name.startsWith('Interact_')) {
-            targetGroup = hoveredMesh;
-        } else {
-            hoveredMesh.traverseAncestors((ancestor) => {
-                if (ancestor.name && ancestor.name.startsWith('Interact_')) {
-                    targetGroup = ancestor;
-                }
-            });
-        }
-
-        if (targetGroup) {
-            document.body.style.cursor = 'pointer';  
-            if (targetGroup.name.startsWith('Interact_tranh')) {
-                outlinePass.selectedObjects = [hoveredMesh]; // Sáng nguyên bức tranh
-            } else {
-                outlinePass.selectedObjects = [targetGroup]; // Sáng cả cụm đồ vật
-            }
-        } else {
-            outlinePass.selectedObjects = [];
-            document.body.style.cursor = 'default';
-        }
-    } else {
-        outlinePass.selectedObjects = [];
-        document.body.style.cursor = 'default';
-    }
-});
-
-// Vòng lặp vật lý và render
+// 3. Vòng lặp vật lý và render (Đã tích hợp Hover theo tâm)
 function animate() {
     requestAnimationFrame(animate);
-
     const delta = Math.min(clock.getDelta(), 0.1);
 
     if (controls.isLocked) {
+        // --- LOGIC DI CHUYỂN & VA CHẠM ---
         velocity.x -= velocity.x * 10.0 * delta;
         velocity.z -= velocity.z * 10.0 * delta;
-
         direction.z = Number(moveForward) - Number(moveBackward);
         direction.x = Number(moveRight) - Number(moveLeft);
         direction.normalize();
@@ -518,14 +512,11 @@ function animate() {
 
         const camDir = new THREE.Vector3();
         camera.getWorldDirection(camDir);
-        camDir.y = 0; 
-        camDir.normalize();
-
+        camDir.y = 0; camDir.normalize();
         const camRight = new THREE.Vector3();
         camRight.crossVectors(camDir, camera.up).normalize();
 
-        let allowZ = true;
-        let allowX = true;
+        let allowZ = true, allowX = true;
         const collisionDistance = 0.5; 
 
         if (Math.abs(fwVelocity) > 0) {
@@ -534,7 +525,6 @@ function animate() {
             const hitsZ = raycaster.intersectObjects(collidableObjects, false);
             if (hitsZ.length > 0 && hitsZ[0].distance < collisionDistance) allowZ = false;
         }
-
         if (Math.abs(sideVelocity) > 0) {
             const rayDirX = camRight.clone().multiplyScalar(Math.sign(sideVelocity));
             raycaster.set(camera.position, rayDirX);
@@ -544,35 +534,69 @@ function animate() {
 
         if (allowX) controls.moveRight(sideVelocity);
         else velocity.x = 0; 
-
         if (allowZ) controls.moveForward(fwVelocity);
         else velocity.z = 0;
 
+        // --- LOGIC TRỌNG LỰC / SÀN NHÀ ---
         raycaster.set(camera.position, new THREE.Vector3(0, -1, 0));
         const floorIntersects = raycaster.intersectObjects(collidableObjects, false);
-
         if (floorIntersects.length > 0) {
             const floorHeight = floorIntersects[0].point.y;
-            if (floorHeight < camera.position.y + 1.0) {
-                camera.position.y = floorHeight + 1.6;
-            }
+            if (floorHeight < camera.position.y + 1.0) camera.position.y = floorHeight + 1.6;
         } else {
             camera.position.y = 1.6; 
         }
+
+        // --- MỚI: LOGIC HOVER THEO TÂM MÀN HÌNH ---
+        // Kiểm tra vật thể ở tâm mỗi khung hình để bật Outline sáng viền
+        raycaster.setFromCamera(screenCenter, camera);
+        const hoverIntersects = raycaster.intersectObjects(interactableObjects, false);
+
+        if (hoverIntersects.length > 0) {
+            const hoveredMesh = hoverIntersects[0].object;
+            let targetGroup = null;
+
+            // Tìm group cha Interact_
+            if (hoveredMesh.name.startsWith('Interact_')) {
+                targetGroup = hoveredMesh;
+            } else {
+                hoveredMesh.traverseAncestors((ancestor) => {
+                    if (ancestor.name && ancestor.name.startsWith('Interact_')) targetGroup = ancestor;
+                });
+            }
+
+            if (targetGroup) {
+                // Hiển thị nhãn tên (Label)
+                const targetPos = new THREE.Vector3();
+                targetGroup.getWorldPosition(targetPos);
+                infoLabel.position.copy(targetPos);
+                infoLabel.position.y += 1.2;
+                infoDiv.innerHTML = `<strong>${targetGroup.name.replace('Interact_', '')}</strong>`;
+                infoDiv.style.display = 'block';
+
+                // Bật sáng viền
+                if (targetGroup.name.startsWith('Interact_tranh')) {
+                    outlinePass.selectedObjects = [hoveredMesh];
+                } else {
+                    outlinePass.selectedObjects = [targetGroup];
+                }
+            }
+        } else {
+            // Tắt viền và nhãn khi không nhìn vào vật thể
+            outlinePass.selectedObjects = [];
+            infoDiv.style.display = 'none';
+        }
     }
 
-    // LƯU Ý: Phải dùng composer.render() thay vì renderer.render() để hậu kỳ chạy được
     composer.render();
     labelRenderer.render(scene, camera); 
 }
 
 animate();
 
-// Cập nhật Resize cho cả Renderer và Composer (Fix lỗi viền nhòe khi kéo cửa sổ)
 window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
-    
     renderer.setSize(window.innerWidth, window.innerHeight);
     labelRenderer.setSize(window.innerWidth, window.innerHeight);
     composer.setSize(window.innerWidth, window.innerHeight);
