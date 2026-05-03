@@ -244,6 +244,11 @@ document.addEventListener('mousedown', () => {
         }
 
         if (interactName.includes('screen') || interactName.includes('manhinh')) {
+            // === ĐÃ THÊM PHÁT ÂM THANH "TING" TRƯỚC KHI MỞ KHÓA CHUỘT ===
+            if (clickSuccessSound.isPlaying) clickSuccessSound.stop();
+            clickSuccessSound.play();
+            // ==========================================================
+
             controls.unlock();
             if (typeof overlay !== 'undefined') {
                 overlay.style.display = 'block';
