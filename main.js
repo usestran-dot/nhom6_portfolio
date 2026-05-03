@@ -279,6 +279,7 @@ if (zoomOverlay) {
         controls.enabled = true; // Mở lại camera để tiếp tục khám phá
     };
 }
+<<<<<<< Updated upstream
 // --- BỔ SUNG: BẮT SỰ KIỆN MOUSEMOVE (HOVER ĐỂ PHÁT SÁNG) ---
 window.addEventListener('mousemove', (event) => {
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
@@ -320,13 +321,39 @@ window.addEventListener('mousemove', (event) => {
         } else {
             outlinePass.selectedObjects = [];
             document.body.style.cursor = 'default';
+=======
+// --- 8B. BỔ SUNG: SỰ KIỆN HOVER (VIỀN SÁNG CHO TRANH) ---
+window.addEventListener('mousemove', (event) => {
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObjects(interactableObjects, false);
+
+    if (intersects.length > 0) {
+        const hoveredMesh = intersects[0].object;
+        
+        // Chỉ hiện viền sáng nếu nó thuộc group Tranh hoặc Đèn
+        let targetGroup = null;
+        hoveredMesh.traverseAncestors((ancestor) => {
+            if (ancestor.name && ancestor.name.startsWith('Interact_')) targetGroup = ancestor;
+        });
+
+        if (targetGroup) {
+            // Nếu là tranh, ta có thể chọn phát sáng riêng Mesh đó hoặc cả group
+            // Ở đây tôi chọn phát sáng riêng Mesh poster đang di chuột vào cho chính xác
+            outlinePass.selectedObjects = [hoveredMesh]; 
+            document.body.style.cursor = 'pointer';
+>>>>>>> Stashed changes
         }
     } else {
         outlinePass.selectedObjects = [];
         document.body.style.cursor = 'default';
     }
 });
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
 // 9. VÒNG LẶP RENDER
 function animate() {
     requestAnimationFrame(animate);
