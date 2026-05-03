@@ -245,18 +245,18 @@ loader.load(
 );
 // --- BẢN ĐỒ ẢNH POSTER ---
 const posterGallery = {
-    "Object_24": "/assets/images/fear_the_dark_diffuse.png", 
-    "Object_25": "/assets/images/fear_the_dark.001_diffuse.jpeg",
-    "Object_26": "/assets/images/fear_the_dark.002_diffuse.jpeg",
-    "Object_31": "/assets/images/mad_max_fury_road_web_by_3ftdeep-d8qr5za_diffuse.png",
-    "Object_32": "/assets/images/mad_max_fury_road_web_by_3ftdeep-d8qr5za.001_diffuse.png",
-    "Object_36": "/assets/images/obey_the_god_diffuse.png",
-    "Object_37": "/assets/images/paper_diffuse.jpeg",
-    "Object_38": "/assets/images/paper.001_diffuse.jpeg",
-    "Object_39": "/assets/images/paper.002_diffuse.jpeg",
-    "Object_40": "/assets/images/paper.003_diffuse.jpeg",
-    "Object_41": "/assets/images/paper.004_diffuse.jpeg",
-    "Object_42": "/assets/images/paper.005_diffuse.jpeg",
+    "Interact_tranh1": "/assets/images/paper_diffuse.jpeg", 
+    "Interact_tranh2": "/assets/images/paper.002_diffuse.jpeg",
+    "Interact_tranh3": "/assets/images/paper.001_diffuse.jpeg",
+    "Interact_tranh4": "/assets/images/fear_the_dark_diffuse.png",
+    "Interact_tranh5": "/assets/images/obey_the_god_diffuse.png",
+    "Interact_tranh6": "/assets/images/mad_max_fury_road_web_by_3ftdeep-d8qr5za_diffuse.png",
+    "Interact_tranh7": "/assets/images/mad_max_fury_road_web_by_3ftdeep-d8qr5za.001_diffuse.png",
+    "Interact_tranh8": "/assets/images/paper.005_diffuse.jpeg",
+    "Interact_tranh9": "/assets/images/paper.004_diffuse.jpeg",
+    "Interact_tranh10": "/assets/images/paper.003_diffuse.jpeg",
+    "Interact_tranh11": "/assets/images/fear_the_dark.001_diffuse.jpeg",
+    
 };
 
 const zoomOverlay = document.getElementById('zoom-overlay');
@@ -264,6 +264,12 @@ const zoomedImage = document.getElementById('zoomed-image');
 // 8. BẮT SỰ KIỆN CLICK (RAYCASTER)
 window.addEventListener('click', (event) => {
     if (!controls.isLocked) return; // Bắt buộc phải khóa chuột mới được tương tác
+// --- THÊM ĐOẠN NÀY ĐỂ TẮT ẢNH BẰNG CHUỘT TRÁI ---
+    if (zoomOverlay && zoomOverlay.style.display === 'flex') {
+        zoomOverlay.style.display = 'none'; // Tắt ảnh đi
+        controls.enabled = true; // Bật lại di chuyển cho nhân vật
+        return; // DỪNG LẠI NGAY, không cho bắn tia Raycaster xuống dưới nữa
+    }
 
     // Bắn tia từ tâm ngắm (giữa màn hình)
     mouse.x = 0;
@@ -305,19 +311,26 @@ clickSuccessSound.play();
     const displayName = targetGroup.name.replace('Interact_', '');
     infoDiv.innerHTML = `<strong>${displayName}</strong><br><span style="font-size: 12px; color: white;">Click de xem chi tiet</span>`;
     infoDiv.style.display = 'block';
-    // --- PHẦN XỬ LÝ ZOOM POSTER CON ---
-    if (targetGroup.name === 'Interact_tranh1') {
-        const childName = clickedMesh.name; // Lấy tên "Object_24", "Object_25"...
+   // --- PHẦN XỬ LÝ ZOOM POSTER (Cấu trúc mới) ---
+// Kiểm tra xem tên Group có bắt đầu bằng "Interact_tranh" hay không
+if (targetGroup.name.startsWith('Interact_tranh')) {
+    
+    // Lấy link ảnh từ posterGallery dựa trên tên của targetGroup (ví dụ: Interact_tranh2)
+    const imagePath = posterGallery[targetGroup.name];
+
+    if (imagePath) {
+        zoomedImage.src = imagePath;
         
-        if (posterGallery[childName]) {
-            zoomedImage.src = posterGallery[childName];
-            zoomedImage.style.transform = "scaleY(-1)";
-            zoomOverlay.style.display = 'flex';
-            controls.enabled = false; // Khóa camera để xem ảnh
-            console.log("Đang zoom poster:", childName);
-        }
+        // Sửa lỗi ngược ảnh (nếu cần)
+        zoomedImage.style.transform = "scaleY(-1)"; 
+        
+        zoomOverlay.style.display = 'flex';
+        controls.enabled = false; 
+        
+        console.log("Đang xem chi tiết:", targetGroup.name);
     }
-    else if (targetGroup.name === 'Interact_den') {
+}
+    if (targetGroup.name === 'Interact_den') {
         if (deskLightRef) {
             // Đảo ngược trạng thái hiện tại (Tắt thành Bật, Bật thành Tắt)
             deskLightRef.visible = !deskLightRef.visible; 
@@ -325,15 +338,15 @@ clickSuccessSound.play();
         }
     }
 });
-// Sự kiện click để ĐÓNG ảnh khi người dùng click vào màn hình đen
-if (zoomOverlay) {
-    zoomOverlay.onclick = () => {
-        event.stopPropagation();
-        zoomOverlay.style.display = 'none';
-        controls.enabled = true; // Mở lại camera để tiếp tục khám phá
-    };
-}
 
+// Sự kiện click chuột PHẢI để ĐÓNG ảnh
+if (zoomOverlay) {
+    zoomOverlay.addEventListener('contextmenu', (event) => {
+        event.preventDefault(); // Bắt buộc phải có dòng này để chặn cái menu của trình duyệt hiện ra
+        zoomOverlay.style.display = 'none'; // Ẩn ảnh đi
+        controls.enabled = true; // Mở lại camera để đi tiếp
+    });
+}
 // --- BỔ SUNG: BẮT SỰ KIỆN MOUSEMOVE (HOVER ĐỂ PHÁT SÁNG) ---
 window.addEventListener('mousemove', (event) => {
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
@@ -364,14 +377,14 @@ window.addEventListener('mousemove', (event) => {
         if (targetGroup) {
             outlinePass.selectedObjects = [targetGroup]; // Phát sáng group đó
             document.body.style.cursor = 'pointer';  
-            // 2. LOGIC FIX: Kiểm tra nếu là cụm tranh thì chỉ sáng Mesh con
-            if (targetGroup.name === 'Interact_tranh1') {
-                // Chỉ gán duy nhất Mesh mà tia Raycaster chạm trúng
+            //Dùng startsWith để bắt TẤT CẢ các cụm tranh từ 1 đến 11
+            if (targetGroup.name.startsWith('Interact_tranh')) {
+                // Chỉ gán duy nhất Mesh (bề mặt tranh) mà tia Raycaster chạm trúng
                 outlinePass.selectedObjects = [hoveredMesh];
             } else {
-                // Đối với các vật thể khác (như cái đèn), có thể sáng cả cụm
+                // Đối với các vật thể khác (như cái đèn), có thể sáng cả cụm Group
                 outlinePass.selectedObjects = [targetGroup];
-            }    // Đổi icon chuột thành bàn tay
+            }
         } else {
             outlinePass.selectedObjects = [];
             document.body.style.cursor = 'default';
@@ -381,12 +394,6 @@ window.addEventListener('mousemove', (event) => {
         document.body.style.cursor = 'default';
     }
 });
-// 9. VÒNG LẶP RENDER
-function animate() {
-    requestAnimationFrame(animate);
-    controls.update();
-    composer.render();
-    labelRenderer.render(scene, camera); // Render UI 2D
 
 // 9. VÒNG LẶP RENDER VÀ VẬT LÝ DI CHUYỂN
 function animate() {
@@ -469,12 +476,13 @@ function animate() {
             if (floorHeight < camera.position.y + 1.0) {
                 camera.position.y = floorHeight + 1.6;
             }
+        
         } else {
             camera.position.y = 1.6; 
         }
     }
 
-    renderer.render(scene, camera);
+    composer.render();
     labelRenderer.render(scene, camera); 
 
 }
