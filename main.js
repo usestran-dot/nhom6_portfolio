@@ -3,6 +3,114 @@ import { PointerLockControls } from 'three/addons/controls/PointerLockControls.j
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 
+// --- 1. GIAO DIỆN DESKTOP PORTFOLIO (HỖ TRỢ VIEW CHI TIẾT & NÚT BACK) ---
+const overlay = document.createElement('div');
+overlay.id = 'popup-overlay';
+// Giao diện bao gồm 2 phần: Desktop (chứa icon) và Detail (chứa nội dung)
+overlay.innerHTML = `
+    <div id="computer-popup">
+        <div id="desktop-view">
+            <div id="desktop-icons">
+                <div class="folder-icon" onclick="window.open('https://www.google.com', '_blank')"><div>🌐</div><div>Browser</div></div>
+                <div class="folder-icon" onclick="showPortfolio('team')"><div>👥</div><div>Team</div></div>
+                <div class="folder-icon" onclick="showPortfolio('works')"><div>📂</div><div>Works</div></div>
+                <div class="folder-icon" onclick="showPortfolio('tech')"><div>🛠️</div><div>Tech</div></div>
+                <div class="folder-icon" onclick="showPortfolio('contact')"><div>✉️</div><div>Contact</div></div>
+            </div>
+        </div>
+
+        <div id="detail-view" style="display: none;">
+            <div class="nav-bar">
+                <button onclick="goBack()" class="back-btn">← Back</button>
+            </div>
+            <div id="content-body">
+                </div>
+        </div>
+    </div>
+`;
+document.body.appendChild(overlay);
+
+// Dữ liệu nội dung (Tôi đã thêm format giống code để nhìn chuyên nghiệp hơn)
+const portfolioData = {
+    team: `
+        <div class="code-view scrollable-content">
+            <div class="indent-1">
+            <h1 class="glitch-text animate-slide-up animate-flicker" style="--color: #89ddff; --glow: rgba(137, 221, 255, 0.5);">THÀNH VIÊN NHÓM 6</h1>            
+                <ul class="code-list indent-1">
+                    <li class="staggered-item" style="--delay: 0.1s"><span class="id-tag">[ID 01]</span> <span class="name">TRẦN HẢI ĐĂNG</span> <span class="code-comment">(24022957)</span></li>
+                    <li class="staggered-item" style="--delay: 0.2s"><span class="id-tag">[ID 02]</span> <span class="name">NGUYỄN VĂN MẠNH</span> <span class="code-comment">(24023031)</span></li>
+                    <li class="staggered-item" style="--delay: 0.3s"><span class="id-tag">[ID 03]</span> <span class="name">NGUYỄN PHÚC PHƯƠNG</span> <span class="code-comment">(24023055)</span></li>
+                    <li class="staggered-item" style="--delay: 0.4s"><span class="id-tag">[ID 04]</span> <span class="name">TRẦN ĐỨC DUY</span> <span class="code-comment">(24022979)</span></li>
+                    <li class="staggered-item" style="--delay: 0.5s"><span class="id-tag">[ID 05]</span> <span class="name">NGUYỄN THỊ XUÂN MAI</span> <span class="code-comment">(24023028)</span></li>
+                </ul>
+            </div>
+        </div>
+    `,
+    
+    works: `
+        <div class="code-view scrollable-content">
+            <div class="indent-1"><h1 class="glitch-text animate-slide-up animate-flicker" style="--color: #f07178; --glow: rgba(240, 113, 120, 0.5);">DỰ ÁN ĐÃ TRIỂN KHAI</h1><p class="status-tag animate-flicker" style="color: #f07178;"></p>                <div class="project-card animate-pop-in">
+                    <p><strong>MỤC TIÊU:</strong> Web Portfolio 3D - Phòng Làm Việc 3D</p>
+                    <p class="desc-text">Xây dựng portfolio 3D tương tác dạng phòng làm việc, cho phép người dùng click vào các đồ vật (màn hình, poster...) để khám phá trực quan về hồ sơ, kỹ năng và dự án cá nhân.
+                </div>
+                <p class="system-msg animate-fade-in">Kho lưu trữ: usestran-dot/nhom6_portfolio</p>
+            </div>
+        </div>
+    `,
+    
+    tech: `
+        <div class="code-view scrollable-content">
+            <div class="indent-1"><h1 class="glitch-text animate-slide-up animate-flicker" style="--color: #c3e88d; --glow: rgba(195, 232, 141, 0.5);">BẢNG CÔNG NGHỆ</h1>                <div class="tech-table animate-pop-in">
+                    <div class="table-row header"><div class="cell">PHÂN LOẠI</div><div class="cell">CÔNG NGHỆ</div></div>
+                    <div class="table-row staggered-item" style="--delay: 0.1s"><div class="cell category">ĐỒ HỌA</div><div class="cell">Three.js / Blender / WebGL 2.0/ ...</div></div>
+                    <div class="table-row staggered-item" style="--delay: 0.2s"><div class="cell category">CỐT LÕI</div><div class="cell">Vite / JavaScript / GitHub/ ...</div></div>
+                    <div class="table-row staggered-item" style="--delay: 0.3s"><div class="cell category">VẬT LÝ</div><div class="cell">Raycasting / PointerLock/ ...</div></div>
+                </div>
+            </div>
+        </div>
+    `,
+
+    contact: `
+        <div class="code-view scrollable-content">
+            <div class="indent-1">
+<h1 class="glitch-text animate-slide-up animate-flicker" style="--color: #c792ea; --glow: rgba(199, 146, 234, 0.5);">
+    LIÊN HỆ TẠI
+</h1>                <div class="contact-hub animate-zoom-in">
+                    <p class="email-display">lienhe.nhom6@email.com</p>
+                    <div class="social-icons-bar">🐦 📁 ✉️</div>
+                </div>
+            </div>
+        </div>
+    `
+};
+
+// Hàm hiển thị chi tiết
+window.showPortfolio = (type) => {
+    const desktop = document.getElementById('desktop-view');
+    const detail = document.getElementById('detail-view');
+    const body = document.getElementById('content-body');
+
+    if (portfolioData[type]) {
+        body.innerHTML = portfolioData[type];
+        desktop.style.display = 'none';
+        detail.style.display = 'block';
+    }
+};
+
+// Hàm quay lại màn hình chính
+window.goBack = () => {
+    document.getElementById('desktop-view').style.display = 'block';
+    document.getElementById('detail-view').style.display = 'none';
+};
+
+// Click ra ngoài để thoát chế độ dùng máy tính 
+overlay.onclick = (e) => {
+    if (e.target.id === 'popup-overlay') {
+        overlay.style.display = 'none';
+        goBack(); // Reset về màn hình icon cho lần mở sau
+        if (typeof controls !== 'undefined') controls.lock(); 
+    }
+};
 // 1. KHỞI TẠO SCENE, CAMERA, RENDERER
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xf0f0f0); 
@@ -82,6 +190,39 @@ const onKeyUp = (event) => {
 };
 document.addEventListener('keydown', onKeyDown);
 document.addEventListener('keyup', onKeyUp);
+document.addEventListener('mousedown', () => {
+    if (!controls.isLocked) return;
+    
+    raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+    const intersects = raycaster.intersectObjects(interactableObjects, true);
+
+    if (intersects.length > 0) {
+        const obj = intersects[0].object;
+        let interactName = "";
+        let curr = obj;
+
+        // Tìm object cha có tên bắt đầu bằng "Interact_"
+        while (curr) {
+            if (curr.name && curr.name.startsWith('Interact_')) {
+                interactName = curr.name.toLowerCase();
+                break;
+            }
+            curr = curr.parent;
+        }
+
+        // Chỉ giữ lại tương tác với Màn hình
+        if (interactName.includes('screen') || interactName.includes('manhinh')) {
+            controls.unlock();
+            
+            // Hiển thị lớp phủ Portfolio
+            if (typeof overlay !== 'undefined') {
+                overlay.style.display = 'block';
+                // Đảm bảo quay về màn hình Desktop chính (chứa các icon)
+                if (window.goBack) window.goBack(); 
+            }
+        }
+    }
+});
 
 // 4. ÁNH SÁNG MÔI TRƯỜNG CƠ BẢN
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
