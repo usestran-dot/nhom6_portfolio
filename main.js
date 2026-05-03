@@ -3,7 +3,116 @@ import { PointerLockControls } from 'three/addons/controls/PointerLockControls.j
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 
-// 1. KHỞI TẠO SCENE, CAMERA, RENDERER VÀ MANAGER
+// --- 1. GIAO DIỆN DESKTOP PORTFOLIO (HỖ TRỢ VIEW CHI TIẾT & NÚT BACK) ---
+const overlay = document.createElement('div');
+overlay.id = 'popup-overlay';
+// Giao diện bao gồm 2 phần: Desktop (chứa icon) và Detail (chứa nội dung)
+overlay.innerHTML = `
+    <div id="computer-popup">
+        <div id="desktop-view">
+            <div id="desktop-icons">
+                <div class="folder-icon" onclick="window.open('https://www.google.com', '_blank')"><div>🌐</div><div>Browser</div></div>
+                <div class="folder-icon" onclick="showPortfolio('team')"><div>👥</div><div>Team</div></div>
+                <div class="folder-icon" onclick="showPortfolio('works')"><div>📂</div><div>Works</div></div>
+                <div class="folder-icon" onclick="showPortfolio('tech')"><div>🛠️</div><div>Tech</div></div>
+                <div class="folder-icon" onclick="showPortfolio('contact')"><div>✉️</div><div>Contact</div></div>
+            </div>
+        </div>
+
+        <div id="detail-view" style="display: none;">
+            <div class="nav-bar">
+                <button onclick="goBack()" class="back-btn">← Back</button>
+            </div>
+            <div id="content-body">
+                </div>
+        </div>
+    </div>
+`;
+document.body.appendChild(overlay);
+
+// Dữ liệu nội dung 
+const portfolioData = {
+    team: `
+        <div class="code-view scrollable-content">
+            <div class="indent-1">
+            <h1 class="glitch-text animate-slide-up animate-flicker" style="--color: #89ddff; --glow: rgba(137, 221, 255, 0.5);">THÀNH VIÊN NHÓM 6</h1>            
+                <ul class="code-list indent-1">
+                    <li class="staggered-item" style="--delay: 0.1s"><span class="id-tag">[ID 01]</span> <span class="name">TRẦN HẢI ĐĂNG</span> <span class="code-comment">(24022957)</span></li>
+                    <li class="staggered-item" style="--delay: 0.2s"><span class="id-tag">[ID 02]</span> <span class="name">NGUYỄN VĂN MẠNH</span> <span class="code-comment">(24023031)</span></li>
+                    <li class="staggered-item" style="--delay: 0.3s"><span class="id-tag">[ID 03]</span> <span class="name">NGUYỄN PHÚC PHƯƠNG</span> <span class="code-comment">(24023055)</span></li>
+                    <li class="staggered-item" style="--delay: 0.4s"><span class="id-tag">[ID 04]</span> <span class="name">TRẦN ĐỨC DUY</span> <span class="code-comment">(24022979)</span></li>
+                    <li class="staggered-item" style="--delay: 0.5s"><span class="id-tag">[ID 05]</span> <span class="name">NGUYỄN THỊ XUÂN MAI</span> <span class="code-comment">(24023028)</span></li>
+                </ul>
+            </div>
+        </div>
+    `,
+    
+    works: `
+        <div class="code-view scrollable-content">
+            <div class="indent-1"><h1 class="glitch-text animate-slide-up animate-flicker" style="--color: #f07178; --glow: rgba(240, 113, 120, 0.5);">DỰ ÁN ĐÃ TRIỂN KHAI</h1><p class="status-tag animate-flicker" style="color: #f07178;"></p>                <div class="project-card animate-pop-in">
+                    <p><strong>MỤC TIÊU:</strong> Web Portfolio 3D - Phòng Làm Việc 3D</p>
+                    <p class="desc-text">Xây dựng portfolio 3D tương tác dạng phòng làm việc, cho phép người dùng click vào các đồ vật (màn hình, poster...) để khám phá trực quan về hồ sơ, kỹ năng và dự án cá nhân.
+                </div>
+                <p class="system-msg animate-fade-in">Kho lưu trữ: usestran-dot/nhom6_portfolio</p>
+            </div>
+        </div>
+    `,
+    
+    tech: `
+        <div class="code-view scrollable-content">
+            <div class="indent-1"><h1 class="glitch-text animate-slide-up animate-flicker" style="--color: #c3e88d; --glow: rgba(195, 232, 141, 0.5);">BẢNG CÔNG NGHỆ</h1>                <div class="tech-table animate-pop-in">
+                    <div class="table-row header"><div class="cell">PHÂN LOẠI</div><div class="cell">CÔNG NGHỆ</div></div>
+                    <div class="table-row staggered-item" style="--delay: 0.1s"><div class="cell category">ĐỒ HỌA</div><div class="cell">Three.js / Blender / WebGL 2.0/ ...</div></div>
+                    <div class="table-row staggered-item" style="--delay: 0.2s"><div class="cell category">CỐT LÕI</div><div class="cell">Vite / JavaScript / GitHub/ ...</div></div>
+                    <div class="table-row staggered-item" style="--delay: 0.3s"><div class="cell category">VẬT LÝ</div><div class="cell">Raycasting / PointerLock/ ...</div></div>
+                </div>
+            </div>
+        </div>
+    `,
+
+    contact: `
+        <div class="code-view scrollable-content">
+            <div class="indent-1">
+<h1 class="glitch-text animate-slide-up animate-flicker" style="--color: #c792ea; --glow: rgba(199, 146, 234, 0.5);">
+    LIÊN HỆ TẠI
+</h1>                <div class="contact-hub animate-zoom-in">
+                    <p class="email-display">lienhe.nhom6@email.com</p>
+                    <div class="social-icons-bar">🐦 📁 ✉️</div>
+                </div>
+            </div>
+        </div>
+    `
+};
+
+// Hàm hiển thị chi tiết
+window.showPortfolio = (type) => {
+    const desktop = document.getElementById('desktop-view');
+    const detail = document.getElementById('detail-view');
+    const body = document.getElementById('content-body');
+
+    if (portfolioData[type]) {
+        body.innerHTML = portfolioData[type];
+        desktop.style.display = 'none';
+        detail.style.display = 'block';
+    }
+};
+
+// Hàm quay lại màn hình chính
+window.goBack = () => {
+    document.getElementById('desktop-view').style.display = 'block';
+    document.getElementById('detail-view').style.display = 'none';
+};
+
+// Click ra ngoài để thoát chế độ dùng máy tính 
+overlay.onclick = (e) => {
+    if (e.target.id === 'popup-overlay') {
+        overlay.style.display = 'none';
+        goBack(); // Reset về màn hình icon cho lần mở sau
+        if (typeof controls !== 'undefined') controls.lock(); 
+    }
+};
+
+// 2. KHỞI TẠO SCENE, CAMERA, RENDERER VÀ MANAGER
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xf0f0f0); 
 
@@ -21,7 +130,6 @@ const loadingScreen = document.getElementById('loading-screen');
 const progressBar = document.getElementById('progress-bar');
 const progressText = document.getElementById('progress-text');
 
-// Gọi thêm các element mới tạo bên HTML
 const loadingProgressDiv = document.getElementById('loading-progress');
 const startContainer = document.getElementById('start-container');
 const startBtn = document.getElementById('start-btn');
@@ -33,18 +141,16 @@ loadingManager.onProgress = function(url, itemsLoaded, itemsTotal) {
 };
 
 loadingManager.onLoad = function() {
-    // Kịch bản mới: Load xong 100% thì ẩn thanh chạy, hiện câu mời gọi và nút Start
     if (loadingProgressDiv) loadingProgressDiv.style.display = 'none';
     if (startContainer) startContainer.style.display = 'block';
 };
 
-// Bắt sự kiện người dùng bấm nút Start
 if (startBtn) {
     startBtn.addEventListener('click', () => {
         if (loadingScreen) {
-            loadingScreen.classList.add('fade-out'); // Kích hoạt CSS làm mờ
+            loadingScreen.classList.add('fade-out'); 
             setTimeout(() => {
-                loadingScreen.style.display = 'none'; // Xóa hẳn khỏi layout sau khi mờ xong
+                loadingScreen.style.display = 'none'; 
             }, 500);
         }
     });
@@ -54,12 +160,10 @@ if (startBtn) {
 const listener = new THREE.AudioListener();
 camera.add(listener);
 
-// Gắn loadingManager vào AudioLoader
 const audioLoader = new THREE.AudioLoader(loadingManager);
 const clickSuccessSound = new THREE.Audio(listener);
 const clickMissSound = new THREE.Audio(listener);
 
-// Load file từ thư mục public/sounds đã tạo
 audioLoader.load('/sounds/success.wav', (buffer) => {
     clickSuccessSound.setBuffer(buffer);
     clickSuccessSound.setVolume(0.7);
@@ -77,7 +181,7 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap; 
 document.body.appendChild(renderer.domElement);
 
-// 2. KHỞI TẠO CSS2DRENDERER (CHO UI LABELS)
+// 3. KHỞI TẠO CSS2DRENDERER (CHO UI LABELS)
 const labelRenderer = new CSS2DRenderer();
 labelRenderer.setSize(window.innerWidth, window.innerHeight);
 labelRenderer.domElement.style.position = 'absolute';
@@ -86,7 +190,7 @@ labelRenderer.domElement.style.left = '0px';
 labelRenderer.domElement.style.pointerEvents = 'none';
 document.body.appendChild(labelRenderer.domElement);
 
-// 3. KHỞI TẠO CONTROLS (GÓC NHÌN THỨ NHẤT AAA)
+// 4. KHỞI TẠO CONTROLS (GÓC NHÌN THỨ NHẤT AAA)
 const controls = new PointerLockControls(camera, document.body);
 scene.add(camera);
 
@@ -120,11 +224,45 @@ const onKeyUp = (event) => {
 document.addEventListener('keydown', onKeyDown);
 document.addEventListener('keyup', onKeyUp);
 
-// 4. ÁNH SÁNG MÔI TRƯỜNG CƠ BẢN
+document.addEventListener('mousedown', () => {
+    if (!controls.isLocked) return;
+    
+    raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+    const intersects = raycaster.intersectObjects(interactableObjects, true);
+
+    if (intersects.length > 0) {
+        const obj = intersects[0].object;
+        let interactName = "";
+        let curr = obj;
+
+        while (curr) {
+            if (curr.name && curr.name.startsWith('Interact_')) {
+                interactName = curr.name.toLowerCase();
+                break;
+            }
+            curr = curr.parent;
+        }
+
+        if (interactName.includes('screen') || interactName.includes('manhinh')) {
+            // === ĐÃ THÊM PHÁT ÂM THANH "TING" TRƯỚC KHI MỞ KHÓA CHUỘT ===
+            if (clickSuccessSound.isPlaying) clickSuccessSound.stop();
+            clickSuccessSound.play();
+            // ==========================================================
+
+            controls.unlock();
+            if (typeof overlay !== 'undefined') {
+                overlay.style.display = 'block';
+                if (window.goBack) window.goBack(); 
+            }
+        }
+    }
+});
+
+// 5. ÁNH SÁNG MÔI TRƯỜNG CƠ BẢN
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
 scene.add(ambientLight);
 
-// 5. TẠO HTML ELEMENT CHO UI NHÃN TÊN
+// 6. TẠO HTML ELEMENT CHO UI NHÃN TÊN
 const infoDiv = document.createElement('div');
 infoDiv.className = 'interact-label';
 infoDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
@@ -139,29 +277,23 @@ infoDiv.style.marginTop = '-1em';
 const infoLabel = new CSS2DObject(infoDiv);
 scene.add(infoLabel);
 
-// 6. RAYCASTER VÀ LOADER
+// 7. RAYCASTER VÀ LOADER
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
-// Gắn Manager đã tạo ở phần 1 vào GLTFLoader
 const loader = new GLTFLoader(loadingManager);
 
 const interactableObjects = [];
-const collidableObjects = []; // Mảng chứa TẤT CẢ tường, sàn, đồ vật để làm vật cản
+const collidableObjects = []; 
 let deskLightRef = null;
 
-// 7. TẢI MODEL VÀ XỬ LÝ (ÁNH SÁNG & TƯƠNG TÁC)
+// 8. TẢI MODEL VÀ XỬ LÝ
 loader.load(
     '/modeldone1.glb',
     (gltf) => {
         const room = gltf.scene;
 
         room.traverse((child) => {
-            // ==========================================
-            // BƯỚC A: XỬ LÝ CÁC MỎ NEO ÁNH SÁNG
-            // ==========================================
-            
-            // --- 1. ĐÈN TRẦN ---
             if (child.name === 'Light_tran') {
                 const ceilingLight = new THREE.PointLight(0xfffaf0, 5, 20);
                 ceilingLight.decay = 2; 
@@ -172,58 +304,38 @@ loader.load(
                 ceilingLight.position.set(0, 0, 0); 
                 child.add(ceilingLight);
             }
-            
-            // --- 2. ĐÈN BÀN HỌC (MỚI THÊM) ---
             else if (child.name === 'Light_denban') {
-                console.log('Đã tìm thấy Light_denban, đang gắn SpotLight...');
-                
-                // Màu vàng nắng (0xffd27d)
                 const deskLight = new THREE.SpotLight(0xffd27d, 1, 10);
-                deskLight.angle = Math.PI / 4; // Góc mở của chụp đèn
-                deskLight.penumbra = 0.3;      // Mờ viền sáng
+                deskLight.angle = Math.PI / 4; 
+                deskLight.penumbra = 0.3;      
                 deskLight.decay = 2;
-                
-                // Bật đổ bóng
                 deskLight.castShadow = true;
                 deskLight.shadow.mapSize.width = 512;
                 deskLight.shadow.mapSize.height = 512;
                 deskLight.shadow.bias = -0.0001;
-                deskLight.visible = false; // Mặc định ban đầu là đèn TẮT
-                deskLightRef = deskLight;  // Lưu vào biến toàn cục để điều khiển ở sự kiện click
+                deskLight.visible = false; 
+                deskLightRef = deskLight;  
 
                 deskLight.position.set(0, 0, 0);
                 child.add(deskLight);
 
-                // Hướng tia sáng cắm xuống mặt bàn
                 deskLight.target.position.set(0, -1, 0);
                 child.add(deskLight.target);
             }
 
-            // ==========================================
-            // BƯỚC B: CHẶN CÁC OBJECT KHÔNG PHẢI MESH
-            // ==========================================
             if (!child.isMesh) return;
             collidableObjects.push(child);
 
-            // ==========================================
-            // BƯỚC C: XỬ LÝ ĐỔ BÓNG CHO MESH
-            // ==========================================
             child.castShadow = true;
             child.receiveShadow = true;
 
-            // --- XỬ LÝ CHỤP ĐÈN KHÔNG CHO SÁNG XUYÊN QUA ---
-            // Tạm thời tôi đặt từ khóa là 'Chup' hoặc 'Lampshade'.
-            // (Nếu team 3D đặt tên khác, bạn thay chữ 'Chup' bằng tên đó nhé)
             if (child.name.includes('Chup') || child.name.includes('Lampshade') || child.name.includes('DenBan')) {
-                child.receiveShadow = false; // Chụp đèn không nhận bóng của chính nó
+                child.receiveShadow = false; 
                 if (child.material) {
-                    child.material.side = THREE.DoubleSide; // Render cả mặt trong lẫn ngoài để chắn sáng tuyệt đối
+                    child.material.side = THREE.DoubleSide; 
                 }
             }
 
-            // ==========================================
-            // BƯỚC D: LỌC VẬT THỂ TƯƠNG TÁC (Raycaster)
-            // ==========================================
             let current = child;
             let isInteractable = false;
             while (current) {
@@ -247,11 +359,10 @@ loader.load(
     }
 );
 
-// 8. BẮT SỰ KIỆN CLICK (RAYCASTER CHO GAME FPS)
+// 9. BẮT SỰ KIỆN CLICK (RAYCASTER CHO GAME FPS)
 window.addEventListener('click', (event) => {
-    if (!controls.isLocked) return; // Bắt buộc phải khóa chuột mới được tương tác
+    if (!controls.isLocked) return; 
 
-    // Bắn tia từ tâm ngắm (giữa màn hình)
     mouse.x = 0;
     mouse.y = 0;
 
@@ -261,14 +372,14 @@ window.addEventListener('click', (event) => {
     if (intersects.length === 0) {
         infoDiv.style.display = 'none';
         if (clickMissSound.isPlaying) clickMissSound.stop();
-clickMissSound.play();
+        clickMissSound.play();
         return;
     }
 
     const clickedMesh = intersects[0].object;
     let targetGroup = null;
     if (clickSuccessSound.isPlaying) clickSuccessSound.stop();
-clickSuccessSound.play();
+    clickSuccessSound.play();
 
     if (clickedMesh.name.startsWith('Interact_')) {
         targetGroup = clickedMesh;
@@ -298,7 +409,7 @@ clickSuccessSound.play();
     }
 });
 
-// 9. VÒNG LẶP RENDER VÀ VẬT LÝ DI CHUYỂN
+// 10. VÒNG LẶP RENDER VÀ VẬT LÝ DI CHUYỂN
 function animate() {
     requestAnimationFrame(animate);
 
@@ -312,15 +423,12 @@ function animate() {
         direction.x = Number(moveRight) - Number(moveLeft);
         direction.normalize();
 
-        // Tốc độ đi bộ vừa phải
         if (moveForward || moveBackward) velocity.z -= direction.z * 25.0 * delta;
         if (moveLeft || moveRight) velocity.x -= direction.x * 25.0 * delta;
 
-        // Lực di chuyển dự kiến
         const fwVelocity = -velocity.z * delta;
         const sideVelocity = -velocity.x * delta;
 
-        // Lấy vector Hướng nhìn (Forward) và Hướng ngang (Right)
         const camDir = new THREE.Vector3();
         camera.getWorldDirection(camDir);
         camDir.y = 0; 
@@ -328,49 +436,34 @@ function animate() {
 
         const camRight = new THREE.Vector3();
         
-        // ==========================================
-        // FIX BUG ĐI XUYÊN TƯỜNG NGANG CHÍNH LÀ Ở ĐÂY:
-        // Đảo ngược vị trí thành (camDir, camera.up) để tia Ray chỉ đúng sang PHẢI
-        // ==========================================
         camRight.crossVectors(camDir, camera.up).normalize();
 
-        // ==========================================
-        // VẬT LÝ 1: KIỂM TRA VA CHẠM ĐỘC LẬP & TRƯỢT TƯỜNG
-        // ==========================================
+        // Vật lý 1: Va chạm & trượt tường
         let allowZ = true;
         let allowX = true;
-        const collisionDistance = 0.5; // Bán kính bụng nhân vật
+        const collisionDistance = 0.5; 
 
-        // Bắn tia hướng Tiến/Lùi
         if (Math.abs(fwVelocity) > 0) {
             const rayDirZ = camDir.clone().multiplyScalar(Math.sign(fwVelocity));
             raycaster.set(camera.position, rayDirZ);
             const hitsZ = raycaster.intersectObjects(collidableObjects, false);
-            if (hitsZ.length > 0 && hitsZ[0].distance < collisionDistance) {
-                allowZ = false;
-            }
+            if (hitsZ.length > 0 && hitsZ[0].distance < collisionDistance) allowZ = false;
         }
 
-        // Bắn tia hướng Trái/Phải
         if (Math.abs(sideVelocity) > 0) {
             const rayDirX = camRight.clone().multiplyScalar(Math.sign(sideVelocity));
             raycaster.set(camera.position, rayDirX);
             const hitsX = raycaster.intersectObjects(collidableObjects, false);
-            if (hitsX.length > 0 && hitsX[0].distance < collisionDistance) {
-                allowX = false;
-            }
+            if (hitsX.length > 0 && hitsX[0].distance < collisionDistance) allowX = false;
         }
 
-        // Áp dụng di chuyển độc lập
         if (allowX) controls.moveRight(sideVelocity);
         else velocity.x = 0; 
 
         if (allowZ) controls.moveForward(fwVelocity);
         else velocity.z = 0;
 
-        // ==========================================
-        // VẬT LÝ 2: TRỌNG LỰC & CHẠM ĐẤT
-        // ==========================================
+        // Vật lý 2: Trọng lực
         raycaster.set(camera.position, new THREE.Vector3(0, -1, 0));
         const floorIntersects = raycaster.intersectObjects(collidableObjects, false);
 
@@ -390,7 +483,7 @@ function animate() {
 
 animate();
 
-// 10. XỬ LÝ KHI RESIZE TRÌNH DUYỆT
+// 11. XỬ LÝ KHI RESIZE TRÌNH DUYỆT
 window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
