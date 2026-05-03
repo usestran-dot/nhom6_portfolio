@@ -106,3 +106,32 @@ canvas {
     opacity: 0; 
     pointer-events: none; 
 }
+/* =========================================
+   UI NÚT START (HIỆN KHI LOAD XONG)
+   ========================================= */
+.invite-text {
+    color: #aaaaaa;
+    font-size: 1rem;
+    margin-bottom: 15px;
+    font-style: italic;
+}
+
+#start-btn {
+    background-color: transparent;
+    color: #00ffcc;
+    border: 2px solid #00ffcc;
+    padding: 10px 30px;
+    font-size: 1.2rem;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+    letter-spacing: 2px;
+}
+
+#start-btn:hover {
+    background-color: #00ffcc;
+    color: #0f0f0f;
+    box-shadow: 0 0 15px #00ffcc;
+}

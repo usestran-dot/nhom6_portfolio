@@ -3,23 +3,59 @@ import { PointerLockControls } from 'three/addons/controls/PointerLockControls.j
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 
-// 1. KHỞI TẠO SCENE, CAMERA, RENDERER
+// 1. KHỞI TẠO SCENE, CAMERA, RENDERER VÀ MANAGER
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xf0f0f0); 
 
 const camera = new THREE.PerspectiveCamera(
     75,
     window.innerWidth / window.innerHeight,
-    0.01, // FIX 1: Đổi từ 0.1 thành 0.01 (Mắt camera nhìn sát vật thể đến 1cm vẫn không bị xuyên)
+    0.01, 
     1000
 );
 camera.position.set(0, 1.6, 2); 
+
+// --- CẤU HÌNH LOADING MANAGER (Đưa lên đầu để quản lý chung) ---
+const loadingManager = new THREE.LoadingManager();
+const loadingScreen = document.getElementById('loading-screen');
+const progressBar = document.getElementById('progress-bar');
+const progressText = document.getElementById('progress-text');
+
+// Gọi thêm các element mới tạo bên HTML
+const loadingProgressDiv = document.getElementById('loading-progress');
+const startContainer = document.getElementById('start-container');
+const startBtn = document.getElementById('start-btn');
+
+loadingManager.onProgress = function(url, itemsLoaded, itemsTotal) {
+    const progress = (itemsLoaded / itemsTotal) * 100;
+    if (progressBar) progressBar.style.width = progress + '%';
+    if (progressText) progressText.innerText = `Loading... ${Math.floor(progress)}%`;
+};
+
+loadingManager.onLoad = function() {
+    // Kịch bản mới: Load xong 100% thì ẩn thanh chạy, hiện câu mời gọi và nút Start
+    if (loadingProgressDiv) loadingProgressDiv.style.display = 'none';
+    if (startContainer) startContainer.style.display = 'block';
+};
+
+// Bắt sự kiện người dùng bấm nút Start
+if (startBtn) {
+    startBtn.addEventListener('click', () => {
+        if (loadingScreen) {
+            loadingScreen.classList.add('fade-out'); // Kích hoạt CSS làm mờ
+            setTimeout(() => {
+                loadingScreen.style.display = 'none'; // Xóa hẳn khỏi layout sau khi mờ xong
+            }, 500);
+        }
+    });
+}
 
 // KHỞI TẠO ÂM THANH
 const listener = new THREE.AudioListener();
 camera.add(listener);
 
-const audioLoader = new THREE.AudioLoader();
+// Gắn loadingManager vào AudioLoader
+const audioLoader = new THREE.AudioLoader(loadingManager);
 const clickSuccessSound = new THREE.Audio(listener);
 const clickMissSound = new THREE.Audio(listener);
 
@@ -33,6 +69,7 @@ audioLoader.load('/sounds/miss.wav', (buffer) => {
     clickMissSound.setBuffer(buffer);
     clickMissSound.setVolume(0.95);
 });
+
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio); 
@@ -102,34 +139,11 @@ infoDiv.style.marginTop = '-1em';
 const infoLabel = new CSS2DObject(infoDiv);
 scene.add(infoLabel);
 
-// 6. RAYCASTER, LOADING MANAGER VÀ LOADER
+// 6. RAYCASTER VÀ LOADER
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
-// --- MỚI: CẤU HÌNH LOADING MANAGER ---
-const loadingManager = new THREE.LoadingManager();
-const loadingScreen = document.getElementById('loading-screen');
-const progressBar = document.getElementById('progress-bar');
-const progressText = document.getElementById('progress-text');
-
-// Lắng nghe tiến độ để đẩy thanh UI
-loadingManager.onProgress = function(url, itemsLoaded, itemsTotal) {
-    const progress = (itemsLoaded / itemsTotal) * 100;
-    if (progressBar) progressBar.style.width = progress + '%';
-    if (progressText) progressText.innerText = `Loading... ${Math.floor(progress)}%`;
-};
-
-// Kích hoạt khi mọi thứ đã load xong 100%
-loadingManager.onLoad = function() {
-    if (loadingScreen) {
-        loadingScreen.classList.add('fade-out'); // Gọi class CSS làm mờ
-        setTimeout(() => {
-            loadingScreen.style.display = 'none'; // Xóa hẳn thẻ div khỏi lưới chuột
-        }, 500);
-    }
-};
-
-// --- CẬP NHẬT: GẮN MANAGER VÀO LOADER ---
+// Gắn Manager đã tạo ở phần 1 vào GLTFLoader
 const loader = new GLTFLoader(loadingManager);
 
 const interactableObjects = [];
