@@ -336,7 +336,7 @@ const infoLabel = new CSS2DObject(infoDiv);
 scene.add(infoLabel);
 
 const raycaster = new THREE.Raycaster();
-raycaster.far = Infinity; // Cho phép tương tác từ xa (Từ nhánh Tương tác)
+raycaster.far = Infinity; 
 const mouse = new THREE.Vector2(0, 0);
 
 const loader = new GLTFLoader(loadingManager);
@@ -349,6 +349,7 @@ loader.load(
     (gltf) => {
         const room = gltf.scene;
         room.traverse((child) => {
+            // --- 1. THIẾT LẬP ÁNH SÁNG ---
             if (child.name === 'Light_tran') {
                 const ceilingLight = new THREE.PointLight(0xfffaf0, 5, 20);
                 ceilingLight.decay = 2; 
@@ -377,6 +378,8 @@ loader.load(
             }
 
             if (!child.isMesh) return;
+            
+            // --- 2. VẬT LÝ VA CHẠM ---
             collidableObjects.push(child);
             child.castShadow = true;
             child.receiveShadow = true;
@@ -386,19 +389,34 @@ loader.load(
                 if (child.material) child.material.side = THREE.DoubleSide; 
             }
 
+            // --- 3. LỌC VẬT THỂ TƯƠNG TÁC (ĐÃ SỬA: LOẠI BỎ TAI NGHE) ---
             let current = child;
             let isInteractable = false;
+
             while (current) {
-                if (current.name && current.name.startsWith('Interact_')) {
-                    isInteractable = true;
-                    break;
+                // Kiểm tra tên vật thể hoặc cha của nó
+                if (current.name) {
+                    // Nếu bắt gặp tên Interact_tainghe thì DỪNG LẠI và KHÔNG cho tương tác
+                    if (current.name === 'Interact_tainghe') {
+                        isInteractable = false;
+                        break;
+                    }
+                    // Nếu là vật thể Interact_ khác thì cho phép tương tác
+                    if (current.name.startsWith('Interact_')) {
+                        isInteractable = true;
+                        break;
+                    }
                 }
                 current = current.parent;
             }
-            if (isInteractable) interactableObjects.push(child);
+
+            // Chỉ thêm vào danh sách tương tác nếu thỏa mãn điều kiện
+            if (isInteractable) {
+                interactableObjects.push(child);
+            }
         });
         scene.add(room);
-        console.log('Đã tải modeldone1.glb thành công. Số lượng tương tác:', interactableObjects.length);
+        console.log('Đã tải xong phòng. Số lượng vật thể tương tác (sau khi lọc):', interactableObjects.length);
     },
     undefined,
     (error) => { console.error('Lỗi tải model:', error); }
