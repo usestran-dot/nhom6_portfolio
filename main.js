@@ -2,9 +2,14 @@ import * as THREE from 'three';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { OutlinePass } from 'three/addons/postprocessing/OutlinePass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
 
 // =========================================================================
-// PHẦN 1: GIAO DIỆN DESKTOP PORTFOLIO (UI 2D HTML)
+// PHẦN 1: GIAO DIỆN DESKTOP PORTFOLIO & DỮ LIỆU POSTER TRANH
 // =========================================================================
 const overlay = document.createElement('div');
 overlay.id = 'popup-overlay';
@@ -69,9 +74,7 @@ const portfolioData = {
     contact: `
         <div class="code-view scrollable-content">
             <div class="indent-1">
-<h1 class="glitch-text animate-slide-up animate-flicker" style="--color: #c792ea; --glow: rgba(199, 146, 234, 0.5);">
-    LIÊN HỆ TẠI
-</h1>                <div class="contact-hub animate-zoom-in">
+<h1 class="glitch-text animate-slide-up animate-flicker" style="--color: #c792ea; --glow: rgba(199, 146, 234, 0.5);">LIÊN HỆ TẠI</h1>                <div class="contact-hub animate-zoom-in">
                     <p class="email-display">lienhe.nhom6@email.com</p>
                     <div class="social-icons-bar">🐦 📁 ✉️</div>
                 </div>
@@ -104,8 +107,25 @@ overlay.onclick = (e) => {
     }
 };
 
+// Dữ liệu Poster Zoom (Từ nhánh Tương tác tranh)
+const posterGallery = {
+    "Interact_tranh1": "/assets/images/paper_diffuse.jpeg", 
+    "Interact_tranh2": "/assets/images/paper.002_diffuse.jpeg",
+    "Interact_tranh3": "/assets/images/paper.001_diffuse.jpeg",
+    "Interact_tranh4": "/assets/images/fear_the_dark_diffuse.png",
+    "Interact_tranh5": "/assets/images/obey_the_god_diffuse.png",
+    "Interact_tranh6": "/assets/images/mad_max_fury_road_web_by_3ftdeep-d8qr5za_diffuse.png",
+    "Interact_tranh7": "/assets/images/mad_max_fury_road_web_by_3ftdeep-d8qr5za.001_diffuse.png",
+    "Interact_tranh8": "/assets/images/paper.005_diffuse.jpeg",
+    "Interact_tranh9": "/assets/images/paper.004_diffuse.jpeg",
+    "Interact_tranh10": "/assets/images/paper.003_diffuse.jpeg",
+    "Interact_tranh11": "/assets/images/fear_the_dark.001_diffuse.jpeg",
+};
+const zoomOverlay = document.getElementById('zoom-overlay');
+const zoomedImage = document.getElementById('zoomed-image');
+
 // =========================================================================
-// PHẦN 2: KHỞI TẠO SCENE, CAMERA VÀ RENDERER
+// PHẦN 2: KHỞI TẠO SCENE, CAMERA VÀ RENDERER HẬU KỲ
 // =========================================================================
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xf0f0f0); 
@@ -113,13 +133,36 @@ scene.background = new THREE.Color(0xf0f0f0);
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 1000);
 camera.position.set(0, 1.6, 2); 
 
+// Renderer Chính (Tối ưu từ nhánh Tương tác)
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(window.devicePixelRatio); 
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap; 
+renderer.dithering = true;
 document.body.appendChild(renderer.domElement);
 
+// Composer Hậu Kỳ (Phát Sáng Viền & Khử răng cưa)
+const renderTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight, {
+    samples: 4, 
+    type: THREE.HalfFloatType
+});
+const composer = new EffectComposer(renderer, renderTarget);
+const renderPass = new RenderPass(scene, camera);
+composer.addPass(renderPass);
+
+const outlinePass = new OutlinePass(new THREE.Vector2(window.innerWidth, window.innerHeight), scene, camera);
+outlinePass.edgeStrength = 3.0;
+outlinePass.edgeGlow = 0.2;
+outlinePass.edgeThickness = 1.0;
+outlinePass.visibleEdgeColor.set('#ffffff');
+outlinePass.hiddenEdgeColor.set('#cccccc');  
+composer.addPass(outlinePass);
+
+const outputPass = new OutputPass();
+composer.addPass(outputPass);
+
+// Renderer Label HTML 2D
 const labelRenderer = new CSS2DRenderer();
 labelRenderer.setSize(window.innerWidth, window.innerHeight);
 labelRenderer.domElement.style.position = 'absolute';
@@ -154,7 +197,7 @@ loadingManager.onLoad = function() {
 // PHẦN 4: HỆ THỐNG ÂM THANH (AUDIO & NÚT START)
 // =========================================================================
 const listener = new THREE.AudioListener();
-camera.add(listener); // Gắn tai nghe vào Camera
+camera.add(listener);
 
 const audioLoader = new THREE.AudioLoader(loadingManager);
 const bgMusic = new THREE.Audio(listener);
@@ -237,7 +280,16 @@ scene.add(camera);
 const blocker = document.getElementById('blocker');
 blocker.addEventListener('click', () => { controls.lock(); });
 controls.addEventListener('lock', () => { blocker.style.display = 'none'; });
-controls.addEventListener('unlock', () => { blocker.style.display = 'flex'; });
+
+// ĐÃ SỬA: Bắt sự kiện thả chuột, nếu đang xem tranh hoặc mở máy tính thì KHÔNG hiện chữ
+controls.addEventListener('unlock', () => { 
+    const isZoomOpen = zoomOverlay && zoomOverlay.style.display === 'flex';
+    const isComputerOpen = overlay && overlay.style.display === 'block';
+    
+    if (!isZoomOpen && !isComputerOpen) {
+        blocker.style.display = 'flex'; 
+    }
+});
 
 let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
 const velocity = new THREE.Vector3();
@@ -284,73 +336,119 @@ const infoLabel = new CSS2DObject(infoDiv);
 scene.add(infoLabel);
 
 const raycaster = new THREE.Raycaster();
+raycaster.far = Infinity; 
 const mouse = new THREE.Vector2(0, 0);
-const loader = new GLTFLoader(loadingManager);
 
+const loader = new GLTFLoader(loadingManager);
 const interactableObjects = [];
 const collidableObjects = []; 
 let deskLightRef = null;
 
-loader.load('/modeldone1.glb', (gltf) => {
-    const room = gltf.scene;
-    room.traverse((child) => {
-        if (child.name === 'Light_tran') {
-            const ceilingLight = new THREE.PointLight(0xfffaf0, 5, 20);
-            ceilingLight.decay = 2; 
-            ceilingLight.castShadow = true; 
-            ceilingLight.shadow.mapSize.width = 1024;
-            ceilingLight.shadow.mapSize.height = 1024;
-            ceilingLight.shadow.bias = -0.005;
-            ceilingLight.position.set(0, 0, 0); 
-            child.add(ceilingLight);
-        } else if (child.name === 'Light_denban') {
-            const deskLight = new THREE.SpotLight(0xffd27d, 1, 10);
-            deskLight.angle = Math.PI / 4; 
-            deskLight.penumbra = 0.3;      
-            deskLight.decay = 2;
-            deskLight.castShadow = true;
-            deskLight.shadow.mapSize.width = 512;
-            deskLight.shadow.mapSize.height = 512;
-            deskLight.shadow.bias = -0.0001;
-            deskLight.visible = false; 
-            deskLightRef = deskLight;  
-            deskLight.position.set(0, 0, 0);
-            child.add(deskLight);
-            deskLight.target.position.set(0, -1, 0);
-            child.add(deskLight.target);
-        }
-
-        if (!child.isMesh) return;
-        collidableObjects.push(child);
-        child.castShadow = true;
-        child.receiveShadow = true;
-
-        if (child.name.includes('Chup') || child.name.includes('Lampshade') || child.name.includes('DenBan')) {
-            child.receiveShadow = false; 
-            if (child.material) child.material.side = THREE.DoubleSide; 
-        }
-
-        let current = child;
-        let isInteractable = false;
-        while (current) {
-            if (current.name && current.name.startsWith('Interact_')) {
-                isInteractable = true; break;
+loader.load(
+    '/modeldone1.glb',
+    (gltf) => {
+        const room = gltf.scene;
+        room.traverse((child) => {
+            // --- 1. THIẾT LẬP ÁNH SÁNG ---
+            if (child.name === 'Light_tran') {
+                const ceilingLight = new THREE.PointLight(0xfffaf0, 5, 20);
+                ceilingLight.decay = 2; 
+                ceilingLight.castShadow = true; 
+                ceilingLight.shadow.mapSize.width = 1024;
+                ceilingLight.shadow.mapSize.height = 1024;
+                ceilingLight.shadow.bias = -0.001;
+                ceilingLight.position.set(0, 0, 0); 
+                child.add(ceilingLight);
             }
-            current = current.parent;
+            else if (child.name === 'Light_denban') {
+                const deskLight = new THREE.SpotLight(0xffd27d, 1, 10);
+                deskLight.angle = Math.PI / 4; 
+                deskLight.penumbra = 0.3;      
+                deskLight.decay = 2;
+                deskLight.castShadow = true;
+                deskLight.shadow.mapSize.width = 512;
+                deskLight.shadow.mapSize.height = 512;
+                deskLight.shadow.bias = -0.0001;
+                deskLight.visible = false; 
+                deskLightRef = deskLight;  
+                deskLight.position.set(0, 0, 0);
+                child.add(deskLight);
+                deskLight.target.position.set(0, -1, 0);
+                child.add(deskLight.target);
+            }
+
+            if (!child.isMesh) return;
+            
+            // --- 2. VẬT LÝ VA CHẠM ---
+            collidableObjects.push(child);
+            child.castShadow = true;
+            child.receiveShadow = true;
+
+            if (child.name.includes('Chup') || child.name.includes('Lampshade') || child.name.includes('DenBan')) {
+                child.receiveShadow = false; 
+                if (child.material) child.material.side = THREE.DoubleSide; 
+            }
+
+            // --- 3. LỌC VẬT THỂ TƯƠNG TÁC (ĐÃ SỬA: LOẠI BỎ TAI NGHE) ---
+            let current = child;
+            let isInteractable = false;
+
+            while (current) {
+                // Kiểm tra tên vật thể hoặc cha của nó
+                if (current.name) {
+                    // Nếu bắt gặp tên Interact_tainghe thì DỪNG LẠI và KHÔNG cho tương tác
+                    if (current.name === 'Interact_tainghe') {
+                        isInteractable = false;
+                        break;
+                    }
+                    // Nếu là vật thể Interact_ khác thì cho phép tương tác
+                    if (current.name.startsWith('Interact_')) {
+                        isInteractable = true;
+                        break;
+                    }
+                }
+                current = current.parent;
+            }
+
+            // Chỉ thêm vào danh sách tương tác nếu thỏa mãn điều kiện
+            if (isInteractable) {
+                interactableObjects.push(child);
+            }
+        });
+        scene.add(room);
+        console.log('Đã tải xong phòng. Số lượng vật thể tương tác (sau khi lọc):', interactableObjects.length);
+    },
+    undefined,
+    (error) => { console.error('Lỗi tải model:', error); }
+);
+
+// =========================================================================
+// PHẦN 7: SỰ KIỆN TƯƠNG TÁC CHUỘT (CLICK, HOVER) & VÒNG LẶP VẬT LÝ GAME
+// =========================================================================
+// Khai báo vector tâm màn hình cố định
+const screenCenter = new THREE.Vector2(0, 0);
+
+// 1. Sự kiện Click chuột (Sử dụng tâm màn hình)
+document.addEventListener('mousedown', (event) => {
+    // Thoát chế độ xem tranh (Zoom)
+    const isZoomOpen = zoomOverlay && zoomOverlay.style.display === 'flex';
+    if (isZoomOpen) {
+        if (event.button === 0) {
+            event.stopPropagation();
+            zoomOverlay.style.display = 'none';
+            controls.enabled = true;
+            controls.lock(); 
         }
-        if (isInteractable) interactableObjects.push(child);
-    });
-    scene.add(room);
-});
+        return; 
+    }
 
-document.addEventListener('mousedown', () => {
-    if (!controls.isLocked) return; 
+    if (!controls.isLocked) return;
 
-    raycaster.setFromCamera(mouse, camera);
+    // Bắn tia từ TÂM màn hình
+    raycaster.setFromCamera(screenCenter, camera);
     const intersects = raycaster.intersectObjects(interactableObjects, false);
 
     if (intersects.length === 0) {
-        infoDiv.style.display = 'none';
         if (clickMissSound.isPlaying) clickMissSound.stop();
         clickMissSound.play();
         return;
@@ -372,40 +470,54 @@ document.addEventListener('mousedown', () => {
 
     if (!targetGroup) return;
 
-    const targetPosition = new THREE.Vector3();
-    targetGroup.getWorldPosition(targetPosition);
-    infoLabel.position.copy(targetPosition);
-    infoLabel.position.y += 1.5;
-
-    const displayName = targetGroup.name.replace('Interact_', '');
-    infoDiv.innerHTML = `<strong>${displayName}</strong><br><span style="font-size: 12px; color: white;">Click de xem chi tiet</span>`;
-    infoDiv.style.display = 'block';
-
     const interactName = targetGroup.name.toLowerCase();
-    if (interactName.includes('den') && deskLightRef) {
-        deskLightRef.visible = !deskLightRef.visible; 
-    } 
-    else if (interactName.includes('screen') || interactName.includes('manhinh')) {
-        controls.unlock();
+
+    // Tương tác Màn hình máy tính
+    if (interactName.includes('screen') || interactName.includes('manhinh')) {
         if (typeof overlay !== 'undefined') {
             overlay.style.display = 'block';
             if (window.goBack) window.goBack(); 
         }
+        controls.unlock(); 
+    } 
+    // Tương tác Xem Poster/Tranh
+    else if (interactName.startsWith('interact_tranh')) {
+        const imagePath = posterGallery[targetGroup.name];
+        if (imagePath) {
+            zoomedImage.src = imagePath;
+            zoomedImage.style.transform = "scaleY(-1)"; 
+            zoomOverlay.style.display = 'flex';
+            controls.enabled = false; 
+            controls.unlock(); 
+        }
+    }
+    // Tương tác Đèn bàn
+    else if (interactName.includes('den') && deskLightRef) {
+        deskLightRef.visible = !deskLightRef.visible; 
     }
 });
 
-// =========================================================================
-// PHẦN 7: VÒNG LẶP RENDER VÀ VẬT LÝ (ANIMATE & RESIZE)
-// =========================================================================
+// 2. Sự kiện chuột phải đóng tranh
+if (zoomOverlay) {
+    zoomOverlay.addEventListener('contextmenu', (event) => {
+        event.preventDefault(); 
+        if (zoomOverlay.style.display === 'flex') {
+            zoomOverlay.style.display = 'none'; 
+            controls.enabled = true; 
+            controls.lock();
+        }
+    });
+}
+
+// 3. Vòng lặp vật lý và render (Đã tích hợp Hover theo tâm)
 function animate() {
     requestAnimationFrame(animate);
-
     const delta = Math.min(clock.getDelta(), 0.1);
 
     if (controls.isLocked) {
+        // --- LOGIC DI CHUYỂN & VA CHẠM ---
         velocity.x -= velocity.x * 10.0 * delta;
         velocity.z -= velocity.z * 10.0 * delta;
-
         direction.z = Number(moveForward) - Number(moveBackward);
         direction.x = Number(moveRight) - Number(moveLeft);
         direction.normalize();
@@ -418,14 +530,11 @@ function animate() {
 
         const camDir = new THREE.Vector3();
         camera.getWorldDirection(camDir);
-        camDir.y = 0; 
-        camDir.normalize();
-
+        camDir.y = 0; camDir.normalize();
         const camRight = new THREE.Vector3();
         camRight.crossVectors(camDir, camera.up).normalize();
 
-        let allowZ = true;
-        let allowX = true;
+        let allowZ = true, allowX = true;
         const collisionDistance = 0.5; 
 
         if (Math.abs(fwVelocity) > 0) {
@@ -434,7 +543,6 @@ function animate() {
             const hitsZ = raycaster.intersectObjects(collidableObjects, false);
             if (hitsZ.length > 0 && hitsZ[0].distance < collisionDistance) allowZ = false;
         }
-
         if (Math.abs(sideVelocity) > 0) {
             const rayDirX = camRight.clone().multiplyScalar(Math.sign(sideVelocity));
             raycaster.set(camera.position, rayDirX);
@@ -444,24 +552,61 @@ function animate() {
 
         if (allowX) controls.moveRight(sideVelocity);
         else velocity.x = 0; 
-
         if (allowZ) controls.moveForward(fwVelocity);
         else velocity.z = 0;
 
+        // --- LOGIC TRỌNG LỰC / SÀN NHÀ ---
         raycaster.set(camera.position, new THREE.Vector3(0, -1, 0));
         const floorIntersects = raycaster.intersectObjects(collidableObjects, false);
-
         if (floorIntersects.length > 0) {
             const floorHeight = floorIntersects[0].point.y;
-            if (floorHeight < camera.position.y + 1.0) {
-                camera.position.y = floorHeight + 1.6;
-            }
+            if (floorHeight < camera.position.y + 1.0) camera.position.y = floorHeight + 1.6;
         } else {
             camera.position.y = 1.6; 
         }
+
+        // --- MỚI: LOGIC HOVER THEO TÂM MÀN HÌNH ---
+        // Kiểm tra vật thể ở tâm mỗi khung hình để bật Outline sáng viền
+        raycaster.setFromCamera(screenCenter, camera);
+        const hoverIntersects = raycaster.intersectObjects(interactableObjects, false);
+
+        if (hoverIntersects.length > 0) {
+            const hoveredMesh = hoverIntersects[0].object;
+            let targetGroup = null;
+
+            // Tìm group cha Interact_
+            if (hoveredMesh.name.startsWith('Interact_')) {
+                targetGroup = hoveredMesh;
+            } else {
+                hoveredMesh.traverseAncestors((ancestor) => {
+                    if (ancestor.name && ancestor.name.startsWith('Interact_')) targetGroup = ancestor;
+                });
+            }
+
+            if (targetGroup) {
+                // Hiển thị nhãn tên (Label)
+                const targetPos = new THREE.Vector3();
+                targetGroup.getWorldPosition(targetPos);
+                infoLabel.position.copy(targetPos);
+                infoLabel.position.y += 1.2;
+                infoDiv.innerHTML = `<strong>${targetGroup.name.replace('Interact_', '')}</strong>`;
+                infoDiv.style.display = 'block';
+
+                // Bật sáng viền
+                if (targetGroup.name.startsWith('Interact_tranh')) {
+                    outlinePass.selectedObjects = [hoveredMesh];
+                } else {
+                    outlinePass.selectedObjects = [targetGroup];
+                }
+            }
+        } else {
+            // Tắt viền và nhãn khi không nhìn vào vật thể
+            outlinePass.selectedObjects = [];
+            infoDiv.style.display = 'none';
+        }
     }
 
-    renderer.render(scene, camera);
+    composer.render();
     labelRenderer.render(scene, camera); 
 }
 
@@ -472,4 +617,5 @@ window.addEventListener('resize', () => {
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
     labelRenderer.setSize(window.innerWidth, window.innerHeight);
+    composer.setSize(window.innerWidth, window.innerHeight);
 });
